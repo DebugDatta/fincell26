@@ -1,0 +1,19 @@
+[build]
+  functions = "netlify/functions"
+
+# API rewrites — must come before the SPA catch-all
+[[redirects]]
+  from = "/api/market"
+  to = "/.netlify/functions/market"
+  status = 200
+
+[[redirects]]
+  from = "/api/chart"
+  to = "/.netlify/functions/chart"
+  status = 200
+
+# SPA fallback — serve index.html for all other paths
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
