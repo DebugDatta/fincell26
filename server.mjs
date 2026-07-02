@@ -45,6 +45,40 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    /* ── Fundamentals data proxy ──────────────────────── */
+    if (pathname === '/api/fundamentals') {
+      const symbol = url.searchParams.get('symbol') || '';
+      if (!symbol) {
+        res.writeHead(400, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+        res.end(JSON.stringify({ error: 'Symbol parameter is required' }));
+        return;
+      }
+      async function getCrumb() {
+        const r = await fetch('https://fc.yahoo.com/', { headers: { 'user-agent': 'Mozilla/5.0' }, redirect: 'manual' });
+        const cookie = r.headers.get('set-cookie') || '';
+        const a3 = cookie.split(';')[0];
+        const r2 = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', { headers: { 'user-agent': 'Mozilla/5.0', 'cookie': a3 } });
+        return { cookie: a3, crumb: (await r2.text()).trim() };
+      }
+      try {
+        const auth = await getCrumb();
+        const modules = 'financialData,defaultKeyStatistics,summaryDetail,earnings';
+        const r = await fetch('https://query2.finance.yahoo.com/v10/finance/quoteSummary/' +
+          encodeURIComponent(symbol) + '?modules=' + modules + '&crumb=' + encodeURIComponent(auth.crumb), {
+          headers: { 'user-agent': 'Mozilla/5.0', 'cookie': auth.cookie }
+        });
+        if (!r.ok) throw new Error(symbol + ' ' + r.status);
+        const data = await r.json();
+        if (data.quoteSummary && data.quoteSummary.error) throw new Error(data.quoteSummary.error.description || 'Yahoo error');
+        res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+        res.end(JSON.stringify(data));
+      } catch (e) {
+        res.writeHead(502, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+
     let file = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
     if (!extname(file)) file = 'index.html';
     const data = await readFile(new URL(file, root));

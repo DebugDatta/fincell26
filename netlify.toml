@@ -12,6 +12,11 @@
   to = "/.netlify/functions/chart"
   status = 200
 
+[[redirects]]
+  from = "/api/fundamentals"
+  to = "/.netlify/functions/fundamentals"
+  status = 200
+
 # SPA fallback — serve index.html for all other paths
 [[redirects]]
   from = "/*"
