@@ -1078,7 +1078,7 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
 /* Composite score cards row */
 .dash-composite {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 8px;
   margin-bottom: 18px;
 }
@@ -1164,6 +1164,8 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
 .dash-growth { background: rgba(105, 75, 20, .7); }
 .dash-health { background: rgba(105, 42, 50, .7); }
 .dash-income { background: rgba(95, 68, 18, .7); }
+.dash-earnings { background: rgba(18, 105, 85, .7); }
+.dash-risk { background: rgba(120, 40, 55, .7); }
 .dash-momentum { background: rgba(72, 55, 125, .7); }
 .dash-comp { background: rgba(20, 87, 95, .7); }
 .dash-section-default { background: rgba(40, 45, 55, .7); }
@@ -1219,9 +1221,17 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
 }
 
 /* Responsive */
-@media (max-width: 900px) {
-  .dash-composite { grid-template-columns: repeat(3, 1fr); }
-  .dash-grid { grid-template-columns: 1fr; }
+@media (max-width: 1000px) {
+  .dash-composite { grid-template-columns: repeat(4, 1fr); }
+  .dash-section-header { font-size: 10px; padding: 7px 12px; }
+  .dash-section-header span:last-child { min-width: 56px; }
+  .dash-score { min-width: 28px; }
+  .dash-row { font-size: 11px; padding: 5px 12px; gap: 10px; }
+  .candle-chart { height: 300px; }
+  .chart-empty { height: 300px; }
+  .chart { height: 160px; }
+  .kpi { padding: 18px 16px; }
+  .kpi strong { font-size: 22px; }
 }
 @media (max-width: 620px) {
   .dash-composite { grid-template-columns: repeat(2, 1fr); gap: 6px; }
@@ -1769,6 +1779,34 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
   .stat:last-child { border-bottom: 0; }
   .stat strong { font-size: 22px; }
 
+  /* ── KPI cards ── */
+  .kpi { padding: 16px 14px; }
+  .kpi strong { font-size: 20px; }
+  .kpi span { font-size: 9px; }
+
+  /* ── Event / List ── */
+  .event-card { padding: 16px; }
+  .event-date { width: 60px; height: 60px; }
+  .event-date strong { font-size: 18px; }
+  .event-date small { font-size: 8px; }
+  .list-head { padding: 16px 16px; }
+  .item-list { padding: 12px; }
+
+  /* ── Leadership / Team cards ── */
+  .leadership-card h3 { font-size: 15px; }
+  .leadership-avatar { font-size: 22px; }
+  .team-card h3 { font-size: 15px; }
+  .team-card p.muted { font-size: 12px; }
+
+  /* ── Site footer ── */
+  .site-footer { padding: 40px 0 24px; }
+
+  /* ── Accordion button span ── */
+  .accordion button span { font-size: 14px; }
+
+  /* ── Hero chart sparkline ── */
+  .chart { height: 140px; }
+
   /* ── Market quotes ── */
   .market-row { font-size: 10px; padding: 5px 8px; gap: 8px; }
   .market-quotes { margin-bottom: 10px; }
@@ -1808,10 +1846,18 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
   .dash-form { flex-direction: column; align-items: stretch; padding: 14px 16px; }
   .dash-input-group input,
   .dash-input-group select { min-width: 0; width: 100%; }
+  .dash-input-group label { font-size: 9px; }
   .dash-chart-header { flex-direction: column; gap: 6px; align-items: flex-start; }
+  .dash-legend { font-size: 9px; }
   .dash-panel { padding: 16px; }
+  .dash-fundamentals { margin-top: 14px; }
+  .dash-panel-fund { margin-top: 10px; }
+  .dash-notice { font-size: 11px; padding: 6px 12px; }
+  .dash-section-header span:last-child { min-width: 48px; }
+  .dash-score { min-width: 24px; font-weight: 500; }
   .candle-chart { height: 240px; }
   .chart-empty { height: 240px; }
+  #fundPanel .chart-empty { font-size: 10px; height: 60px; }
 
   /* ── Leadership ── */
   .leadership-section { padding-top: 28px; }
@@ -1888,6 +1934,22 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
 
   .candle-chart { height: 180px; }
   .chart-empty { height: 180px; }
+  .chart { height: 120px; }
+  .dash-section-header { font-size: 9px; padding: 5px 8px; gap: 4px; }
+  .dash-section-header span:last-child { min-width: 36px; }
+  .dash-toggle { font-size: 6px; }
+  .dash-score { min-width: 20px; font-weight: 500; }
+  .dash-row { font-size: 10px; padding: 3px 8px; gap: 6px; min-height: 24px; }
+  .dash-value { font-weight: 400; }
+  .dash-form { padding: 10px 12px; gap: 8px; }
+  .dash-panel { padding: 12px; }
+  .dash-fundamentals { margin-top: 10px; }
+  .kpi { padding: 14px 10px; }
+  .kpi strong { font-size: 18px; }
+  .leadership-card h3 { font-size: 14px; }
+  .team-card h3 { font-size: 14px; }
+  .accordion button span { font-size: 13px; }
+  .site-footer { padding: 32px 0 20px; }
 
   .gallery-grid { columns: 2 120px; column-gap: 8px; }
   .gallery-card { margin: 0 0 8px; }

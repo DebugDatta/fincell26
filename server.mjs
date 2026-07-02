@@ -62,7 +62,7 @@ const server = http.createServer(async (req, res) => {
       }
       try {
         const auth = await getCrumb();
-        const modules = 'financialData,defaultKeyStatistics,summaryDetail,earnings';
+        const modules = 'financialData,defaultKeyStatistics,summaryDetail,earnings,calendarEvents,recommendationTrend';
         const r = await fetch('https://query2.finance.yahoo.com/v10/finance/quoteSummary/' +
           encodeURIComponent(symbol) + '?modules=' + modules + '&crumb=' + encodeURIComponent(auth.crumb), {
           headers: { 'user-agent': 'Mozilla/5.0', 'cookie': auth.cookie }

@@ -147,6 +147,14 @@ function fmtMoney(v) {
   return n.toFixed(2);
 }
 
+function fmtDate(ts) {
+  if (ts == null) return '—';
+  var d = new Date(ts * 1000);
+  if (isNaN(d.getTime())) return '—';
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
 function rawVal(v) {
   if (v == null) return null;
   if (typeof v === 'object' && v.raw != null) return v.raw;
@@ -311,8 +319,8 @@ function computeMomentum(chartResult, extraRS) {
   ];
 
   if (extraRS) {
-    if (extraRS.rs6) rows.push(extraRS.rs6);
-    if (extraRS.rs12) rows.push(extraRS.rs12);
+    if (extraRS.rs6 && extraRS.rs6.score != null) rows.push(extraRS.rs6);
+    if (extraRS.rs12 && extraRS.rs12.score != null) rows.push(extraRS.rs12);
   }
 
   rows.push(
@@ -519,10 +527,10 @@ function computeValuation(fd, stat, detail) {
   var shares = rawVal(stat && stat.sharesOutstanding);
   var bvps = safeDiv(bvTotal, shares);
   var mcap = rawVal(detail && detail.marketCap);
+  var ev = rawVal(stat && stat.enterpriseValue);
   var revenue = rawVal(fd && fd.totalRevenue);
   var opM = rawVal(fd && fd.operatingMargins);
   var fcf = rawVal(fd && fd.freeCashflow);
-  var epsGrowth = rawVal(fd && fd.earningsGrowth);
 
   var pe = rawVal(detail && detail.trailingPE);
   var fpe = rawVal(stat && stat.forwardPE);
@@ -532,9 +540,19 @@ function computeValuation(fd, stat, detail) {
   var evSales = rawVal(stat && stat.enterpriseToRevenue);
   var peg = rawVal(stat && stat.pegRatio);
 
+  // New valuation metrics
+  var targetPrice = rawVal(fd && fd.targetMeanPrice);
+  var targetUpside = (targetPrice != null && dClose != null && dClose !== 0)
+    ? (targetPrice / dClose - 1) * 100 : null;
+  var recKey = fd && fd.recommendationKey;
+  var recMean = rawVal(fd && fd.recommendationMean);
+  var analystCount = rawVal(fd && fd.numberOfAnalystOpinions);
+  var fcfYield = safeDiv(fcf, mcap);
+  var pfcf = safeDiv(mcap, fcf);
+  var evfcf = safeDiv(ev, fcf);
+
   var earnYield = safeDiv(eps, dClose);
   var opYield = (opM != null && ps != null && ps !== 0) ? opM / ps : null;
-  var fcfYield = safeDiv(fcf, mcap);
 
   var grahamPrice = (eps != null && bvps != null && eps > 0 && bvps > 0) ?
     Math.sqrt(22.5 * eps * bvps) : null;
@@ -551,11 +569,14 @@ function computeValuation(fd, stat, detail) {
   var earnYieldScore = scoreHigher(earnYield, 0.02, 0.12);
   var opYieldScore = scoreHigher(opYield, 0.03, 0.15);
   var grahamScore = scoreHigher(grahamUpside, -30, 50);
+  var targetScore = scoreHigher(targetUpside, -10, 40);
+  var pfcfScore = scoreLower(pfcf, 5, 45);
+  var evfcfScore = scoreLower(evfcf, 5, 50);
 
   var valueComposite = avg5(
     avg3(peScore, fpeScore, pegScore),
     avg3(psScore, pbScore, evScore),
-    evSalesScore,
+    avg5(evSalesScore, targetScore, pfcfScore, evfcfScore, null),
     avg3(earnYieldScore, opYieldScore, null),
     grahamScore);
 
@@ -572,9 +593,19 @@ function computeValuation(fd, stat, detail) {
     { name: 'EPS TTM', value: fmtNum(eps), score: null },
     { name: 'BVPS', value: fmtNum(bvps), score: pbScore, cat: 'Value' },
     { name: 'FCF Yield', value: fmtPct(fcfYield), score: null },
-    { name: 'Graham Price', value: fmtNum(grahamPrice), score: grahamScore, cat: 'Value' },
-    { name: 'Graham Upside', value: arrow(grahamUpside) + (grahamUpside != null ? grahamUpside.toFixed(2) + '%' : '—'), score: grahamScore, cat: 'Value' }
+    { name: 'Price / FCF', value: fmtNum(pfcf), score: pfcfScore, cat: 'Value' },
+    { name: 'EV / FCF', value: fmtNum(evfcf), score: evfcfScore, cat: 'Value' },
+    { name: 'Target Price', value: fmtNum(targetPrice), score: null },
+    { name: 'Upside to Target', value: arrow(targetUpside) + (targetUpside != null ? targetUpside.toFixed(2) + '%' : '—'), score: targetScore, cat: 'Value' },
+    { name: 'Analyst Consensus', value: (recKey || '—') + (recMean != null ? ' (' + recMean.toFixed(2) + ')' : ''), score: null },
+    { name: 'Analyst Count', value: (analystCount != null ? analystCount : '—'), score: null }
   ];
+
+  // Add Graham rows only if computable
+  if (grahamPrice != null) {
+    rows.push({ name: 'Graham Price', value: fmtNum(grahamPrice), score: grahamScore, cat: 'Value' });
+    rows.push({ name: 'Graham Upside', value: arrow(grahamUpside) + (grahamUpside != null ? grahamUpside.toFixed(2) + '%' : '—'), score: grahamScore, cat: 'Value' });
+  }
 
   return { rows: rows, composite: valueComposite };
 }
@@ -589,12 +620,15 @@ function computeQuality(fd, stat) {
   var fcfM = rawVal(fd && fd.freeCashflow);
   var revenue = rawVal(fd && fd.totalRevenue);
   var fcfMargin = safeDiv(fcfM, revenue);
+  var netIncome = rawVal(stat && stat.netIncomeToCommon);
+  var grossProfit = rawVal(fd && fd.grossProfit);
+  var netMarginComputed = (netIncome != null && revenue != null && revenue !== 0) ? netIncome / revenue : netM;
 
   var roeScore = scoreHigher(roe, 0.05, 0.25);
   var roaScore = scoreHigher(roa, 0.02, 0.15);
   var grossScore = scoreHigher(grossM, 0.20, 0.60);
   var opScore = scoreHigher(opM, 0.05, 0.30);
-  var netScore = scoreHigher(netM, 0.03, 0.25);
+  var netScore = scoreHigher(netMarginComputed, 0.03, 0.25);
   var ebitdaScore = scoreHigher(ebitdaM, 0.08, 0.35);
   var fcfMarginScore = scoreHigher(fcfMargin, 0, 0.20);
 
@@ -611,7 +645,9 @@ function computeQuality(fd, stat) {
     { name: 'Operating Margin', value: fmtPct(opM), score: opScore, cat: 'Quality' },
     { name: 'Net Margin', value: fmtPct(netM), score: netScore, cat: 'Quality' },
     { name: 'EBITDA Margin', value: fmtPct(ebitdaM), score: ebitdaScore, cat: 'Quality' },
-    { name: 'FCF Margin', value: fmtPct(fcfMargin), score: fcfMarginScore, cat: 'Quality' }
+    { name: 'FCF Margin', value: fmtPct(fcfMargin), score: fcfMarginScore, cat: 'Quality' },
+    { name: 'Net Income', value: fmtMoney(netIncome), score: null, cat: 'Quality' },
+    { name: 'Gross Profit', value: fmtMoney(grossProfit), score: null, cat: 'Quality' }
   ];
 
   return { rows: rows, composite: qualityComposite };
@@ -631,6 +667,36 @@ function computeGrowth(fd) {
   ];
 
   return { rows: rows, composite: growthComposite };
+}
+
+function computeRisk(fd, stat) {
+  var beta = rawVal(stat && stat.beta);
+  var shortRatio = rawVal(stat && stat.shortRatio);
+  var shortPctFloat = rawVal(stat && stat.shortPercentOfFloat);
+  var sharesShort = rawVal(stat && stat.sharesShort);
+  var floatShares = rawVal(stat && stat.floatShares);
+  var instOwn = rawVal(stat && stat.heldPercentInstitutions);
+  var insiderOwn = rawVal(stat && stat.heldPercentInsiders);
+
+  var betaScore = scoreMid(beta, 0, 1.0, 2.5);
+  var shortScore = scoreLower(shortRatio, 1, 10);
+  var shortPctScore = scoreLower(shortPctFloat, 0.02, 0.30);
+  var instScore = scoreMid(instOwn, 0, 0.60, 1.0);
+  var insiderScore = scoreHigher(insiderOwn, 0, 0.30);
+
+  var riskComposite = avg5(betaScore, shortScore, shortPctScore, avg3(instScore, insiderScore, null), null);
+
+  var rows = [
+    { name: 'Beta (5Y)', value: fmtNum(beta), score: betaScore, cat: 'Risk' },
+    { name: 'Short Ratio', value: fmtNum(shortRatio), score: shortScore, cat: 'Risk' },
+    { name: 'Short % Float', value: fmtPct(shortPctFloat), score: shortPctScore, cat: 'Risk' },
+    { name: 'Shares Short', value: fmtMoney(sharesShort), score: null, cat: 'Risk' },
+    { name: 'Float Shares', value: fmtMoney(floatShares), score: null, cat: 'Risk' },
+    { name: 'Institutional Own.', value: fmtPct(instOwn), score: instScore, cat: 'Risk' },
+    { name: 'Insider Own.', value: fmtPct(insiderOwn), score: insiderScore, cat: 'Risk' }
+  ];
+
+  return { rows: rows, composite: riskComposite };
 }
 
 function computeHealth(fd, stat) {
@@ -689,6 +755,7 @@ function computeIncome(fd, stat, detail) {
   var mcap = rawVal(detail && detail.marketCap);
   var eps = rawVal(stat && stat.trailingEps);
   var dClose = rawVal(fd && fd.currentPrice);
+  var divRate = rawVal(detail && detail.dividendRate);
 
   var fcfYield = safeDiv(fcf, mcap);
   var dps = (divYield != null && dClose != null) ? dClose * divYield : null;
@@ -702,12 +769,66 @@ function computeIncome(fd, stat, detail) {
 
   var rows = [
     { name: 'Dividend Yield', value: fmtPct(divYield), score: yieldScore, cat: 'Income' },
+    { name: 'Dividend Rate', value: fmtNum(divRate), score: null, cat: 'Income' },
     { name: 'Payout Ratio', value: fmtPct(payout), score: payoutScore, cat: 'Income' },
     { name: 'FCF Yield', value: fmtPct(fcfYield), score: fcfYieldScore, cat: 'Income' },
     { name: 'DPS (Est.)', value: fmtNum(dps), score: dpsScore, cat: 'Income' }
   ];
 
   return { rows: rows, composite: incomeComposite };
+}
+
+function computeEarnings(ear, events, rec) {
+  var quarterlyEarnings = ear && ear.earningsChart && ear.earningsChart.quarterly;
+  var lastQ = quarterlyEarnings && quarterlyEarnings.length > 0 ? quarterlyEarnings[0] : null;
+  var prevQ = quarterlyEarnings && quarterlyEarnings.length > 1 ? quarterlyEarnings[1] : null;
+
+  var epsActual = lastQ && lastQ.actual;
+  var epsEst = lastQ && lastQ.estimate;
+  var epsSurprise = (epsActual != null && epsEst != null && epsEst !== 0)
+    ? ((epsActual - epsEst) / Math.abs(epsEst)) * 100 : null;
+
+  var prevActual = prevQ && prevQ.actual;
+  var epsYoY = (epsActual != null && prevActual != null && prevActual !== 0)
+    ? ((epsActual - prevActual) / Math.abs(prevActual)) * 100 : null;
+
+  var curEstimate = ear && ear.earningsChart && ear.earningsChart.currentQuarterEstimate;
+  var curEstDate = ear && ear.earningsChart && ear.earningsChart.currentQuarterEstimateDate;
+
+  var eDates = events && events.earnings && events.earnings.earningsDate;
+  var nextDate = eDates && eDates.length > 0 ? eDates[0] : null;
+  var epsEstNext = events && events.earnings && events.earnings.earningsAverage;
+  var revEstNext = events && events.earnings && events.earnings.revenueAverage;
+
+  var trend = rec && rec.trend && rec.trend[0];
+  var totalRec = trend ? (trend.strongBuy + trend.buy + trend.hold + trend.sell + trend.strongSell) : 0;
+  var buyRatio = totalRec > 0 ? (trend.strongBuy + trend.buy) / totalRec : null;
+
+  var surpriseScore = scoreHigher(epsSurprise, -5, 15);
+  var yoyScore = scoreHigher(epsYoY, -15, 30);
+  var buyScore = scoreHigher(buyRatio, 0.2, 0.7);
+
+  var earningsComposite = avg5(surpriseScore, yoyScore, buyScore, null, null);
+
+  var rows = [
+    { name: 'EPS (Last Q)', value: fmtNum(epsActual), score: null, cat: 'Earnings' },
+    { name: 'EPS Estimate', value: fmtNum(epsEst), score: null, cat: 'Earnings' },
+    { name: 'Surprise %', value: (epsSurprise != null ? (epsSurprise > 0 ? '+' : '') + epsSurprise.toFixed(2) + '%' : '—'), score: surpriseScore, cat: 'Earnings' },
+    { name: 'EPS YoY %', value: (epsYoY != null ? (epsYoY > 0 ? '+' : '') + epsYoY.toFixed(2) + '%' : '—'), score: yoyScore, cat: 'Earnings' },
+    { name: 'Next EPS Est', value: fmtNum(epsEstNext), score: null, cat: 'Earnings' },
+    { name: 'Next Revenue Est', value: fmtMoney(revEstNext), score: null, cat: 'Earnings' }
+  ];
+
+  if (nextDate) {
+    rows.push({ name: 'Next Earnings', value: fmtDate(nextDate), score: null, cat: 'Earnings' });
+  }
+
+  if (trend) {
+    var trendStr = '↑' + (trend.strongBuy + trend.buy) + ' →' + trend.hold + ' ↓' + (trend.sell + trend.strongSell);
+    rows.push({ name: 'Analyst Trend', value: trendStr, score: buyScore, cat: 'Earnings' });
+  }
+
+  return { rows: rows, composite: earningsComposite };
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -721,6 +842,8 @@ var SECTION_CSS = {
   'GROWTH': 'dash-growth',
   'HEALTH': 'dash-health',
   'INCOME': 'dash-income',
+  'EARNINGS': 'dash-earnings',
+  'RISK': 'dash-risk',
   'MOMENTUM': 'dash-momentum'
 };
 
@@ -820,6 +943,10 @@ function renderDashboard(fundData, chartResult, el) {
     return;
   }
 
+  var ear = fundData && fundData.earnings;
+  var events = fundData && fundData.calendarEvents;
+  var rec = fundData && fundData.recommendationTrend;
+
   var snapshot = computeSnapshot(fd, stat, detail);
   var valuation = computeValuation(fd, stat, detail);
   var quality = computeQuality(fd, stat);
@@ -827,8 +954,13 @@ function renderDashboard(fundData, chartResult, el) {
   var health = computeHealth(fd, stat);
   var income = computeIncome(fd, stat, detail);
   var momentum = computeMomentum(chartResult, fundData._momentumExtra);
+  var earnings = computeEarnings(ear, events, rec);
+  var risk = computeRisk(fd, stat);
 
-  var overallScore = avg5(valuation.composite, quality.composite, growth.composite, health.composite, avg3(momentum.composite, income.composite, null));
+  var overallScore = avg5(
+    avg5(valuation.composite, quality.composite, growth.composite, null, null),
+    avg5(health.composite, income.composite, momentum.composite, earnings.composite, risk.composite),
+    null, null, null);
 
   var h = '<div class="dash-fundamentals">';
 
@@ -838,7 +970,9 @@ function renderDashboard(fundData, chartResult, el) {
   h += renderScoreCardHTML('Growth', growth.composite);
   h += renderScoreCardHTML('Health', health.composite);
   h += renderScoreCardHTML('Income', income.composite);
+  h += renderScoreCardHTML('Earnings', earnings.composite);
   h += renderScoreCardHTML('Momentum', momentum.composite);
+  h += renderScoreCardHTML('Risk', risk.composite);
   h += '</div>';
 
   h += renderSectionHTML('SNAPSHOT', snapshot.rows, true);
@@ -847,6 +981,8 @@ function renderDashboard(fundData, chartResult, el) {
   h += renderSectionHTML('GROWTH', growth.rows, false);
   h += renderSectionHTML('HEALTH', health.rows, false);
   h += renderSectionHTML('INCOME', income.rows, false);
+  h += renderSectionHTML('EARNINGS', earnings.rows, false);
+  h += renderSectionHTML('RISK', risk.rows, false);
   h += renderSectionHTML('MOMENTUM', momentum.rows, false);
   h += '</div>';
 
@@ -912,19 +1048,36 @@ function loadBoth() {
 
   promises.push(chartPromise, fundPromise);
 
-  // Fetch benchmark data if provided
-  var benchPromise = null;
-  if (bench) {
-    // Only need benchmark for RS computation — use same months range
-    var benchMonths = Math.max(months, 12);
-    benchPromise = fetch('/api/chart?symbol=' + encodeURIComponent(bench) + '&months=' + benchMonths)
+  // When benchmark is provided, ensure stock chart data covers at least 12M for RS computation
+  var rsMonths = bench ? Math.max(months, 12) : months;
+  if (rsMonths !== months) {
+    // Re-fetch stock chart with longer period
+    chartPromise = fetch('/api/chart?symbol=' + encodeURIComponent(symbol) + '&months=' + rsMonths)
       .then(function (r) { return r.json() })
       .then(function (data) {
         if (data.error) throw new Error(data.error);
+        if (data.chart && data.chart.error) throw new Error(data.chart.error.description || 'Not found');
         var result = data.chart && data.chart.result && data.chart.result[0];
+        if (!result) throw new Error('No data for ' + symbol);
+        return result;
+      });
+  }
+
+  // Fetch benchmark data if provided
+  var benchPromise = null;
+  if (bench) {
+    benchPromise = fetch('/api/chart?symbol=' + encodeURIComponent(bench) + '&months=' + rsMonths)
+      .then(function (r) { return r.json() })
+      .then(function (data) {
+        if (data.error) throw new Error('Benchmark error: ' + data.error);
+        var result = data.chart && data.chart.result && data.chart.result[0];
+        if (!result) throw new Error('No data for benchmark: ' + bench);
         return result;
       })
-      .catch(function () { return null }); // bench is optional, don't fail on error
+      .catch(function (e) {
+        toast('⚠️ Benchmark "' + bench + '" not found — RS metrics unavailable');
+        return null;
+      });
     promises.push(benchPromise);
   }
 
