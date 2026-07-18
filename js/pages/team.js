@@ -2,7 +2,7 @@ import { esc, shell } from '../utils.js';
 import { state } from '../state.js';
 
 export default function team() {
-  return shell('Meet the team', 'The People',
+  return shell('Meet the team', '',
     '<p class="lead" style="margin-top:18px">Twenty-plus driven students across four verticals, united by a shared belief that great finance starts with great thinking.</p><div class="team-grid grid" style="margin-top:28px">' +
     state.team.filter(function (t) { return t.published !== false })
       .sort(function (a, b) { return (a.order || 0) - (b.order || 0) })

@@ -31,9 +31,9 @@ export function adminPanel(renderFn) {
 }
 
 function contentAdmin() {
-  var editors = { hero: heroEdit, about: aboutEdit, departments: deptEditor, events: function () { return coll('events', [['Title', 'title'], ['Date', 'date'], ['Time', 'time'], ['Venue', 'venue'], ['Description', 'desc', 1]]) }, news: function () { return coll('news', [['Headline', 'h'], ['Category', 'c'], ['Excerpt', 'e', 1], ['Date', 'd'], ['Link', 'l']]) }, blogs: function () { return coll('blogs', [['Title', 't'], ['Category', 'c'], ['Preview', 'p', 1], ['Author', 'a'], ['Read time', 'rt'], ['Link', 'l']]) }, contact: footerAdmin, projects: function () { return '<h3>Projects</h3><p class="muted">Use media upload for image assets. Add project links below.</p>' + input('Repo title', '_repo.title', '') + input('Repo URL', '_repo.url', '') + '<button class="btn secondary" data-add="repo">Add repository</button>' } };
+  var editors = { hero: heroEdit, about: aboutEdit, departments: orgEditor, blogs: thinkTankEditor, contact: footerAdmin, projects: projEditor };
   return '<h2>Editable Content</h2><div class="admin-tabs">' +
-    ['hero', 'about', 'departments', 'events', 'news', 'blogs', 'projects', 'contact'].map(function (x) {
+    ['hero', 'about', 'departments', 'blogs', 'projects', 'contact'].map(function (x) {
       return '<button class="tab' + (app.contentTab === x ? ' active' : '') + '" data-edit="' + x + '">' + x + '</button>'
     }).join('') + '</div><div id="editHost">' + (editors[app.contentTab] || heroEdit)() + '</div>'
 }
@@ -54,35 +54,44 @@ function heroEdit() {
     }).join('') + '</div><button class="btn secondary" data-add="stat" style="margin-top:10px">+ Add Statistic</button></div>'
 }
 
-function deptEditor() {
-  return '<h3>Departments</h3><div class="admin-list">' +
-    state.departments.map(function (d, i) {
-      var members = d.members || [];
-      return '<div class="admin-item-card"><div class="editor-grid">' +
-        input('Name', 'departments.' + i + '.name', d.name) +
-        input('Label', 'departments.' + i + '.label', d.label) +
-        area('Description', 'departments.' + i + '.desc', d.desc) +
-        input('Skills (comma-separated)', 'departments.' + i + '.skills', d.skills.join(', ')) +
-        imageUpload('Image', 'departments.' + i + '.image', d.image) +
-        '<label class="field"><span>Published</span><select data-path="departments.' + i + '.published">' +
-        '<option value="true" ' + (d.published !== false ? 'selected' : '') + '>Published</option>' +
-        '<option value="false" ' + (d.published === false ? 'selected' : '') + '>Unpublished</option></select></label>' +
-        '</div><h4>Members</h4><div class="admin-list">' +
-        (members.length ? members.map(function (m, j) {
-          return '<div class="admin-row">' +
-            '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
-            '<input data-path="departments.' + i + '.members.' + j + '.name" value="' + esc(m.name) + '" placeholder="Name" style="min-width:110px;flex:1">' +
-            '<input data-path="departments.' + i + '.members.' + j + '.role" value="' + esc(m.role) + '" placeholder="Designation" style="min-width:110px;flex:1">' +
-            '<input data-path="departments.' + i + '.members.' + j + '.image" value="' + esc(m.image || '') + '" placeholder="Image URL" style="min-width:90px;flex:1">' +
-            '<select data-path="departments.' + i + '.members.' + j + '.published" style="padding:4px 6px;font-size:10px;border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.03);color:var(--text)">' +
-            '<option value="true" ' + (m.published !== false ? 'selected' : '') + '>Pub</option>' +
-            '<option value="false" ' + (m.published === false ? 'selected' : '') + '>Unpub</option></select></div>' +
-            '<button class="btn subtle danger" data-del="departments.' + i + '.members.' + j + '" style="flex-shrink:0">Delete</button></div>'
-        }).join('') : '<div class="empty" style="padding:12px;font-size:12px">No members yet.</div>') +
-        '</div><div style="display:flex;gap:8px;margin-top:10px">' +
-        '<button class="btn secondary" data-add-member="' + i + '" style="font-size:11px">+ Add Member</button>' +
-        '<button class="btn subtle danger" data-del="departments.' + i + '">Delete Department</button></div></div>'
-    }).join('') + '</div><button class="btn secondary" data-add="departments" style="margin-top:12px">+ Add Department</button>'
+function orgEditor() {
+  var org = state.organization || [];
+  return '<h3>Core Organization</h3><p class="muted" style="margin-bottom:12px">Level 0 = House, 1 = Department, 2 = Sub-department, 3+ = Person. Order determines nesting.</p><div class="admin-list">' +
+    org.map(function (item, i) {
+      return '<div class="admin-item-card" style="padding:14px"><div class="editor-grid">' +
+        input('Name', 'organization.' + i + '.name', item.name) +
+        input('Role (leave blank for headings)', 'organization.' + i + '.role', item.role) +
+        input('Level', 'organization.' + i + '.level', item.level) +
+        imageUpload('Photo', 'organization.' + i + '.image', item.image) +
+        area('Bio', 'organization.' + i + '.bio', item.bio) +
+        '</div><div style="display:flex;gap:6px;margin-top:8px">' +
+        '<button class="btn subtle" data-order="organization.' + i + '.-1">Up</button>' +
+        '<button class="btn subtle" data-order="organization.' + i + '.1">Down</button>' +
+        '<button class="btn subtle danger" data-del="organization.' + i + '">Delete</button></div></div>'
+    }).join('') + '</div><button class="btn secondary" data-add="organization" style="margin-top:12px">+ Add Entry</button>'
+}
+
+
+
+function projEditor() {
+  var cats = { fundamental: 'Fundamental Research', quantitative: 'Quantitative Research' };
+  var html = '<h3>Projects</h3>';
+  for (var key in cats) {
+    var arr = state.projects[key] || [];
+    html += '<div class="admin-section"><h4>' + cats[key] + '</h4><div class="admin-list">' +
+      arr.map(function (p, i) {
+        return '<div class="admin-item-card"><div class="editor-grid">' +
+          input('Title', 'projects.' + key + '.' + i + '.title', p.title) +
+          area('Description', 'projects.' + key + '.' + i + '.desc', p.desc) +
+          input('Link', 'projects.' + key + '.' + i + '.link', p.link) +
+          input('Year', 'projects.' + key + '.' + i + '.year', p.year) +
+          '</div><div style="display:flex;gap:6px;margin-top:8px">' +
+          '<button class="btn subtle" data-order-proj="' + key + '.' + i + '.-1">Up</button>' +
+          '<button class="btn subtle" data-order-proj="' + key + '.' + i + '.1">Down</button>' +
+          '<button class="btn subtle danger" data-del="projects.' + key + '.' + i + '">Delete</button></div></div>'
+      }).join('') + '</div><button class="btn secondary" data-add="project-' + key + '" style="margin-top:8px">+ Add to ' + cats[key] + '</button></div>'
+  }
+  return html
 }
 
 function coll(name, fields) {
@@ -100,10 +109,29 @@ function coll(name, fields) {
 }
 
 function mediaAdmin() {
-  return '<h2>Media Library</h2><div class="admin-section"><h4>Upload Images</h4><div class="field"><label>Select gallery images</label><input id="galleryUpload" type="file" accept="image/*" multiple></div></div>' +
+  var periods = ['current', 'past'];
+  var cats = ['events', 'workshop'];
+  return '<h2>Media Library</h2><div class="admin-section"><h4>Upload Images</h4>' +
+    '<div class="editor-grid" style="grid-template-columns:1fr 1fr">' +
+    '<label class="field"><span>Period</span><select id="uploadPeriod" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:rgba(255,255,255,.03);color:var(--text);outline:none">' +
+    periods.map(function (p) { return '<option value="' + p + '">' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>' }).join('') +
+    '</select></label>' +
+    '<label class="field"><span>Category</span><select id="uploadCategory" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:rgba(255,255,255,.03);color:var(--text);outline:none">' +
+    cats.map(function (c) { return '<option value="' + c + '">' + (c === 'workshop' ? 'Workshop' : 'Events') + '</option>' }).join('') +
+    '</select></label></div>' +
+    '<div class="field"><label>Select gallery images</label><input id="galleryUpload" type="file" accept="image/*" multiple></div></div>' +
     '<div class="admin-section"><h4>Gallery Items</h4><div class="admin-list">' +
     (state.gallery.length ? state.gallery.map(function (g, i) {
-      return '<div class="admin-row"><div style="display:flex;align-items:center;gap:10px"><img src="' + g.url + '" style="width:60px;height:40px;object-fit:cover;border-radius:6px"><span style="font-size:13px">' + esc(g.name) + '</span></div><button class="btn subtle danger" data-del="gallery.' + i + '">Delete</button></div>'
+      return '<div class="admin-row" style="flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:140px">' +
+        '<img src="' + g.url + '" style="width:60px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">' +
+        '<span style="font-size:13px">' + esc(g.name) + '</span></div>' +
+        '<select data-path="gallery.' + i + '.period" style="border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:rgba(255,255,255,.03);color:var(--text);font-size:12px;outline:none">' +
+        periods.map(function (p) { return '<option value="' + p + '"' + ((g.period || 'past') === p ? ' selected' : '') + '>' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>' }).join('') +
+        '</select>' +
+        '<select data-path="gallery.' + i + '.category" style="border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:rgba(255,255,255,.03);color:var(--text);font-size:12px;outline:none">' +
+        cats.map(function (c) { return '<option value="' + c + '"' + (g.category === c ? ' selected' : '') + '>' + (c === 'workshop' ? 'Workshop' : 'Events') + '</option>' }).join('') +
+        '</select>' +
+        '<button class="btn subtle danger" data-del="gallery.' + i + '">Delete</button></div>'
     }).join('') : '<div class="empty" style="padding:16px;font-size:13px">No images uploaded yet.</div>') +
     '</div></div>'
 }
@@ -137,6 +165,12 @@ function sectionAdmin() {
     }).join('') + '</div></div>'
 }
 
+function thinkTankEditor() {
+  var blogFields = [['Title', 't'], ['Category', 'c'], ['Preview', 'p', 1], ['Author', 'a'], ['Read time', 'rt'], ['Link', 'l']];
+  var podcastFields = [['Title', 't'], ['Category', 'c'], ['Description', 'p', 1], ['Host', 'a'], ['Duration', 'rt'], ['Link', 'l']];
+  return coll('blogs', blogFields) + coll('podcasts', podcastFields)
+}
+
 function footerAdmin() {
   return '<h2>Footer and Contact</h2><div class="admin-section"><h4>Footer Settings</h4><div class="editor-grid">' +
     area('Footer body', 'footer.body', state.footer.body) +
@@ -146,7 +180,6 @@ function footerAdmin() {
     input('Contact title', 'contact.title', state.contact.title) +
     area('Contact body', 'contact.body', state.contact.body) +
     input('Contact email', 'contact.email', state.contact.email) +
-    input('Contact phone', 'contact.phone', state.contact.phone) +
     input('Contact address', 'contact.address', state.contact.address) +
     '</div></div>'
 }
@@ -170,17 +203,26 @@ function adminBind(renderFn) {
   Array.prototype.slice.call(document.querySelectorAll('[data-del]')).forEach(function (b) {
     b.onclick = function () { del(b.dataset.del); save(); renderFn() }
   });
+  Array.prototype.slice.call(document.querySelectorAll('[data-order]')).forEach(function (b) {
+    b.onclick = function () {
+      var parts = b.dataset.order.split('.'), arr = state[parts[0]], i = +parts[1], j = i + (+parts[2]);
+      if (arr && j >= 0 && j < arr.length) {
+        var x = arr[i]; arr[i] = arr[j]; arr[j] = x;
+        save(); renderFn()
+      }
+    }
+  });
+  Array.prototype.slice.call(document.querySelectorAll('[data-order-proj]')).forEach(function (b) {
+    b.onclick = function () {
+      var parts = b.dataset.orderProj.split('.'), arr = state.projects[parts[0]], i = +parts[1], j = i + (+parts[2]);
+      if (arr && j >= 0 && j < arr.length) {
+        var x = arr[i]; arr[i] = arr[j]; arr[j] = x;
+        save(); renderFn()
+      }
+    }
+  });
   Array.prototype.slice.call(document.querySelectorAll('[data-add]')).forEach(function (b) {
     b.onclick = function () { add(b.dataset.add); save(); renderFn() }
-  });
-  Array.prototype.slice.call(document.querySelectorAll('[data-add-member]')).forEach(function (b) {
-    b.onclick = function () {
-      var i = +b.dataset.addMember;
-      if (!state.departments[i].members) state.departments[i].members = [];
-      state.departments[i].members.push({ name: 'New Member', role: 'Member', image: '', published: true });
-      save();
-      renderFn()
-    }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-add-leader]')).forEach(function (b) {
     b.onclick = function () {
@@ -228,10 +270,12 @@ function adminBind(renderFn) {
   var upload = document.getElementById('galleryUpload');
   if (upload) {
     upload.onchange = function (e) {
+      var period = document.getElementById('uploadPeriod').value;
+      var cat = document.getElementById('uploadCategory').value;
       Array.prototype.forEach.call(e.target.files, function (file) {
         var r = new FileReader();
         r.onload = function () {
-          state.gallery.push({ id: Math.random().toString(36).slice(2, 9), name: file.name, category: 'events', url: r.result, published: true });
+          state.gallery.push({ id: Math.random().toString(36).slice(2, 9), name: file.name, category: cat, period: period, url: r.result, published: true });
           save();
           renderFn()
         };
@@ -275,11 +319,9 @@ function aboutEdit() {
 function editor(x) {
   if (x === 'hero') return heroEdit();
   if (x === 'about') return aboutEdit();
-  if (x === 'departments') return deptEditor();
-  if (x === 'events') return coll('events', [['Title', 'title'], ['Date', 'date'], ['Time', 'time'], ['Venue', 'venue'], ['Description', 'desc', 1]]);
-  if (x === 'news') return coll('news', [['Headline', 'h'], ['Category', 'c'], ['Excerpt', 'e', 1], ['Date', 'd'], ['Link', 'l']]);
-  if (x === 'blogs') return coll('blogs', [['Title', 't'], ['Category', 'c'], ['Preview', 'p', 1], ['Author', 'a'], ['Read time', 'rt'], ['Link', 'l']]);
+  if (x === 'departments') return orgEditor();
+  if (x === 'blogs') return thinkTankEditor();
   if (x === 'contact') return footerAdmin();
-  return '<h3>Projects</h3><p class="muted">Use media upload for image assets. Add project links below.</p>' +
-    input('Repo title', '_repo.title', '') + input('Repo URL', '_repo.url', '') + '<button class="btn secondary" data-add="repo">Add repository</button>'
+  if (x === 'projects') return projEditor();
+  return '<h3>Editable Content</h3><p class="muted">Select a content type from the tabs above.</p>'
 }

@@ -1,5 +1,5 @@
 import { state, app, routes } from './state.js';
-import { $, $$, esc, pathOf, pageFromPath, applyType, foot, toast, counters, charts } from './utils.js';
+import { $, $$, esc, pathOf, pageFromPath, applyType, foot, toast, counters } from './utils.js';
 import { initMarket } from './market.js';
 import { bindDash } from './pages/dashboard.js';
 import home from './pages/home.js';
@@ -51,7 +51,7 @@ function footer() {
   return '<div class="container"><div class="footer-grid"><div><a class="brand" data-route="home" href="/"><img class="brand-mark" src="./fincelllogo.png" alt=""><span><strong>FINCELL</strong><small>St. Xavier\'s College</small></span></a><p class="muted">' + esc(f.body) + '</p></div><div class="footer-col"><h3>Navigate</h3>' +
     ['home', 'about', 'departments', 'projects', 'dashboard'].map(foot).join('') +
     '</div><div class="footer-col"><h3>Content</h3>' +
-    ['news', 'events', 'blogs', 'gallery'].map(foot).join('') +
+    ['blogs', 'gallery'].map(foot).join('') +
     '</div><div class="footer-col"><h3>Contact</h3><a>' + esc(f.address) + '</a><a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></div></div><div class="footer-bottom"><span>© 2026 FINCELL, St. Xavier\'s College. All rights reserved.</span><div class="socials">' +
     f.socials.map(function (s) { return '<a href="' + esc(s[1]) + '">' + esc(s[0]) + '</a>' }).join('') +
     '</div></div></div>'
@@ -59,7 +59,7 @@ function footer() {
 
 function page(p) {
   if (p === 'admin') return adminPage();
-  var pages = { home: home, about: about, departments: departments, projects: projects, dashboard: dashboard, gallery: gallery, events: events, blogs: blogs, news: news, contact: contact };
+  var pages = { home: home, about: about, departments: departments, projects: projects, dashboard: dashboard, gallery: gallery, blogs: blogs, contact: contact };
   return (pages[p] || home)()
 }
 
@@ -69,15 +69,40 @@ function render() {
   $('#siteFooter').innerHTML = footer();
   bindRoutes();
   bind();
-  charts();
   counters();
   initMarket();
   if (app.current === 'dashboard') bindDash()
 }
 
 function bind() {
-  $$('[data-dept]').forEach(function (b) {
-    b.onclick = function () { app.dept = b.dataset.dept; render() }
+  $$('[data-org-house]').forEach(function (b) {
+    b.onclick = function () { app.orgTab = b.dataset.orgHouse; render() }
+  });
+  $$('[data-proj-tab]').forEach(function (b) {
+    b.onclick = function () { app.projTab = b.dataset.projTab; app.projSearch = ''; app.projFilters = null; render() }
+  });
+  $$('[data-proj-search]').forEach(function (el) {
+    el.oninput = function () {
+      app.projSearch = el.value;
+      render();
+      var s = document.querySelector('[data-proj-search]');
+      if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length) }
+    }
+  });
+  $$('[data-proj-filter]').forEach(function (cb) {
+    cb.onchange = function () {
+      var parts = cb.dataset.projFilter.split('.'), o = app.projFilters;
+      o[parts[0]][parts[1]] = cb.checked;
+      render();
+      var s = document.querySelector('[data-proj-search]');
+      if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length) }
+    }
+  });
+  $$('[data-tt-section]').forEach(function (b) {
+    b.onclick = function () { app.thinkTankSection = b.dataset.ttSection; render() }
+  });
+  $$('[data-gal-period]').forEach(function (b) {
+    b.onclick = function () { app.galPeriod = b.dataset.galPeriod; render() }
   });
   $$('[data-filter]').forEach(function (b) {
     b.onclick = function () { app.galFilter = b.dataset.filter; render() }
@@ -96,7 +121,13 @@ function bind() {
   });
   var cf = $('#contactForm');
   if (cf) {
-    cf.onsubmit = function (e) { e.preventDefault(); toast('Message drafted. Connect a mail service before launch.'); e.target.reset() }
+    cf.onsubmit = function (e) {
+      e.preventDefault();
+      var form = e.target;
+      fetch('/', { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } })
+        .then(function (r) { if (r.ok) { toast('Message sent! We\'ll get back to you soon.'); form.reset() } else { toast('Failed to send. Please try again.') } })
+        .catch(function () { toast('Failed to send. Please try again.') })
+    }
   }
   var lb = $('#loginBtn');
   if (lb) {
@@ -212,7 +243,7 @@ function init() {
       entries.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('revealed') })
     }, { threshold: 0.12 });
     function attachReveal() {
-      $$('.card,.eyebrow,.section-title,.lead,.stats,.timeline-item,.feature-card').forEach(function (el, i) {
+      $$('.card,.eyebrow,.section-title,.lead,.stats,.timeline-item').forEach(function (el, i) {
         if (!el.hasAttribute('data-reveal')) {
           el.setAttribute('data-reveal', '');
           var col = i % 4;

@@ -34,7 +34,7 @@ export function applyType(p) {
 }
 
 export function shell(title, eye, body) {
-  return '<section class="page"><div class="section"><div class="container"><span class="eyebrow">' + eye + '</span><h1 class="section-title">' + title + '</h1>' + body + '</div></div></section>'
+  return '<section class="page"><div class="section"><div class="container">' + (eye ? '<span class="eyebrow">' + eye + '</span>' : '') + '<h1 class="section-title">' + title + '</h1>' + body + '</div></div></section>'
 }
 
 export function listBox(t, s, arr, empty) {

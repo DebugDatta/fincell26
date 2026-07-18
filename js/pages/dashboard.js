@@ -1,6 +1,11 @@
 import { shell, $, toast } from '../utils.js';
 import { app } from '../state.js';
 
+var RANGES = ['1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'max'];
+var RANGE_LABELS = { '1mo':'1 Month', '3mo':'3 Months', '6mo':'6 Months', '1y':'1 Year', '2y':'2 Years', '5y':'5 Years', '10y':'10 Years', 'max':'Max' };
+
+function rangeIndex(r) { return RANGES.indexOf(r) }
+
 var LABELS = {
   '^NSEI': 'Nifty 50', '^BSESN': 'Sensex', '^NSEBANK': 'Bank Nifty',
   'RELIANCE.NS': 'Reliance Industries', 'TCS.NS': 'TCS', 'INFY.NS': 'Infosys',
@@ -9,19 +14,49 @@ var LABELS = {
 
 export default function dashboard() {
   var tick = app.ticker || '^NSEI';
-  return shell('FINCELL Research Dashboard', 'Analytics',
+  return shell('FINCELL Research Dashboard', '',
     '<div class="dash-form">' +
     '<div class="dash-input-group"><label>Ticker</label>' +
     '<input id="tickerInput" value="' + tick + '" placeholder="e.g. ^NSEI, RELIANCE.NS, AAPL"></div>' +
-    '<div class="dash-input-group"><label>Period (months)</label>' +
-    '<input type="number" id="monthsInput" min="1" value="3" placeholder="3"></div>' +
+    '<div class="dash-input-group"><label>Data range</label>' +
+    '<select id="rangeSelect">' + RANGES.map(function (r) { return '<option value="' + r + '"' + (r === '1y' ? ' selected' : '') + '>' + (RANGE_LABELS[r] || r) + '</option>' }).join('') + '</select></div>' +
     '<div class="dash-input-group"><label>Benchmark (optional)</label>' +
     '<input id="benchInput" value="" placeholder="e.g. ^GSPC, SPY"></div>' +
     '<button class="btn primary" id="loadChartBtn">Load</button></div>' +
     '<div class="card dash-panel"><div class="dash-chart-header"><h3 id="chartTitle">' + (LABELS[tick] || tick) + '</h3>' +
-    '<div class="dash-legend"><span class="legend-up">▲ Bullish</span><span class="legend-down">▼ Bearish</span></div></div>' +
+    '<div class="dash-legend"><span class="legend-up">▲ Bullish</span><span class="legend-down">▼ Bearish</span></div>' +
+    '<button class="dash-info-btn" id="dashInfoBtn" title="Scoring methodology">ℹ</button></div>' +
     '<div class="chart-lg" id="candleChart"><div class="chart-empty">Enter a ticker and click Load</div></div></div>' +
-    '<div id="fundPanel"></div>')
+    '<div id="fundPanel"></div>' +
+    '<div class="dash-info-overlay" id="dashInfoOverlay"><div class="dash-info-modal">' +
+    '<button class="dash-info-close" id="dashInfoClose">╳</button>' +
+    '<h3>Scoring Methodology</h3>' +
+    '<div class="dash-info-table">' +
+    '<div class="dash-info-th"><span>Metric</span><span>How it\'s scored</span><span>What\'s included</span></div>' +
+    [
+      ['Value', 'Average of all valuation scores', 'P/E, Fwd P/E, PEG, P/S, P/B, EV/EBITDA, EV/Sales, Earnings Yield, Op. Yield, P/FCF, EV/FCF, Target upside, Graham upside'],
+      ['Quality', 'Average of all margin scores', 'ROE, ROA, Gross Margin, Operating Margin, Net Margin, EBITDA Margin, FCF Margin'],
+      ['Growth', 'Average of Revenue + EPS growth', 'Revenue Growth, EPS Growth'],
+      ['Health', 'Average of balance sheet scores', 'Debt/Equity, Debt/EBITDA, Cash/Debt, Interest Cover, Current Ratio, Quick Ratio, OCF, FCF'],
+      ['Income', 'Average of income scores', 'Dividend Yield, Payout Ratio, FCF Yield, DPS'],
+      ['Earnings', 'Average of earnings quality scores', 'Surprise %, EPS YoY %, Analyst Buy Ratio'],
+      ['Momentum', 'Average of price trend scores', 'RSI(14), 52W Position, MA Status, Volatility, RS vs Benchmark (6M, 12M)'],
+      ['Risk', 'Average of risk scores', 'Beta, Short Ratio, Short % Float, Institutional Own., Insider Own.'],
+      ['Overall', 'Average of Group A + Group B', 'A: Value + Quality + Growth · B: Health + Income + Momentum + Earnings + Risk']
+    ].map(function (r) {
+      return '<div class="dash-info-tr"><span class="dash-info-metric">' + r[0] + '</span><span class="dash-info-formula">' + r[1] + '</span><span class="dash-info-parts">' + r[2] + '</span></div>'
+    }).join('') +
+    '<div class="dash-info-th"><span>Scoring helper</span><span>Range</span><span>When it\'s used</span></div>' +
+    [
+      ['Higher is better', 'Raw value → 0–100', 'ROE, ROA, margins, growth rates, earnings yield, buy ratio'],
+      ['Lower is better', 'Raw value → 0–100', 'P/E, P/B, D/E, volatility, short ratio, PEG'],
+      ['Midpoint is best', 'Raw value → 0–100', 'RSI (ideal 60), Current Ratio (ideal 2.0), Beta (ideal 1.0)'],
+      ['Binary', 'Positive = 100, Negative = 0', 'OCF, FCF, DPS']
+    ].map(function (r) {
+      return '<div class="dash-info-tr"><span class="dash-info-metric">' + r[0] + '</span><span class="dash-info-formula">' + r[1] + '</span><span class="dash-info-parts">' + r[2] + '</span></div>'
+    }).join('') +
+    '<div class="dash-info-grades"><strong>Grades</strong> <span>≥85 ELITE</span> <span>≥70 STRONG</span> <span>≥55 FAIR</span> <span>≥40 WEAK</span> <span>&lt;40 RISK</span></div>' +
+    '</div></div></div>')
 }
 
 export function bindDash() {
@@ -29,15 +64,24 @@ export function bindDash() {
   if (!btn) return;
   btn.onclick = loadBoth;
 
-  var months = $('#monthsInput');
-  if (months && app.months) months.value = app.months;
+  var sel = $('#rangeSelect');
+  if (sel && app.range) sel.value = app.range;
 
   var inp = $('#tickerInput');
   if (inp && app.ticker) inp.value = app.ticker;
 
   if (app.ticker) loadBoth();
   delete app.ticker;
-  delete app.months;
+  delete app.range;
+
+  var infoBtn = $('#dashInfoBtn');
+  var infoOverlay = $('#dashInfoOverlay');
+  var infoClose = $('#dashInfoClose');
+  if (infoBtn && infoOverlay && infoClose) {
+    infoBtn.onclick = function () { infoOverlay.classList.add('open') };
+    infoClose.onclick = function () { infoOverlay.classList.remove('open') };
+    infoOverlay.onclick = function (e) { if (e.target === infoOverlay) infoOverlay.classList.remove('open') }
+  }
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -907,7 +951,7 @@ function renderScoreCardHTML(name, score) {
   var sc = scoreColor(score);
   var gr = grade(score);
   var s = score != null ? Math.round(score) : '—';
-  return '<div class="dash-score-card" style="border-left-color:' + sc + '">' +
+  return '<div class="dash-score-card" style="border-top-color:' + sc + '">' +
     '<span>' + esc(name) + '</span>' +
     '<strong style="color:' + sc + '">' + s + '</strong>' +
     '<small style="color:' + sc + '">' + gr + '</small>' +
@@ -1006,8 +1050,7 @@ function loadBoth() {
   }
   symbol = symbol.trim();
 
-  var months = parseInt((($('#monthsInput') || {}).value)) || 3;
-  if (months < 1) months = 1;
+  var range = ($('#rangeSelect') || {}).value || '1y';
 
   var bench = ($('#benchInput') || {}).value.trim();
 
@@ -1023,7 +1066,7 @@ function loadBoth() {
   var promises = [];
 
   // Fetch chart data
-  var chartPromise = fetch('/api/chart?symbol=' + encodeURIComponent(symbol) + '&months=' + months)
+  var chartPromise = fetch('/api/chart?symbol=' + encodeURIComponent(symbol) + '&range=' + range)
     .then(function (r) { return r.json() })
     .then(function (data) {
       if (data.error) throw new Error(data.error);
@@ -1048,11 +1091,10 @@ function loadBoth() {
 
   promises.push(chartPromise, fundPromise);
 
-  // When benchmark is provided, ensure stock chart data covers at least 12M for RS computation
-  var rsMonths = bench ? Math.max(months, 12) : months;
-  if (rsMonths !== months) {
-    // Re-fetch stock chart with longer period
-    chartPromise = fetch('/api/chart?symbol=' + encodeURIComponent(symbol) + '&months=' + rsMonths)
+  // RS computation needs at least 1 year — bump range if shorter
+  var rsRange = (!bench || rangeIndex(range) >= rangeIndex('1y')) ? range : '1y';
+  if (rsRange !== range) {
+    chartPromise = fetch('/api/chart?symbol=' + encodeURIComponent(symbol) + '&range=' + rsRange)
       .then(function (r) { return r.json() })
       .then(function (data) {
         if (data.error) throw new Error(data.error);
@@ -1061,12 +1103,13 @@ function loadBoth() {
         if (!result) throw new Error('No data for ' + symbol);
         return result;
       });
+    promises[0] = chartPromise;
   }
 
   // Fetch benchmark data if provided
   var benchPromise = null;
   if (bench) {
-    benchPromise = fetch('/api/chart?symbol=' + encodeURIComponent(bench) + '&months=' + rsMonths)
+    benchPromise = fetch('/api/chart?symbol=' + encodeURIComponent(bench) + '&range=' + rsRange)
       .then(function (r) { return r.json() })
       .then(function (data) {
         if (data.error) throw new Error('Benchmark error: ' + data.error);
@@ -1143,7 +1186,7 @@ function renderCandles(result, el) {
   }
   if (!data.length) { if (el) el.innerHTML = '<div class="chart-empty">No data available</div>'; return }
 
-  var W = 800, H = 380, P = 24, n = data.length;
+  var W = Math.max(300, (el ? el.clientWidth : 800) - 4), H = Math.min(380, W * 0.475), P = 24, n = data.length;
   var min = Infinity, max = -Infinity;
   data.forEach(function (d) { if (d.l < min) min = d.l; if (d.h > max) max = d.h });
   var pad = (max - min) * 0.05 || 1;

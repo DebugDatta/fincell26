@@ -28,8 +28,7 @@ const server = http.createServer(async (req, res) => {
     /* ── Chart data proxy ───────────────────────────── */
     if (pathname === '/api/chart') {
       const symbol = url.searchParams.get('symbol') || '^NSEI';
-      const months = parseInt(url.searchParams.get('months')) || 3;
-      const range = months <= 1 ? '1mo' : months <= 3 ? '3mo' : months <= 6 ? '6mo' : months <= 12 ? '1y' : months <= 24 ? '2y' : '5y';
+      const range = url.searchParams.get('range') || '1y';
       try {
         const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) +
           '?interval=1d&range=' + range, { headers: { 'user-agent': 'Mozilla/5.0' } });

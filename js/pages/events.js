@@ -3,7 +3,7 @@ import { state } from '../state.js';
 
 export default function events() {
   var ev = state.events.filter(function (e) { return e.published !== false });
-  return shell("Events and ongoing work", "What's On",
+  return shell("Events and ongoing work", "",
     '<div class="event-layout grid" style="margin-top:28px"><div><h3>Upcoming Events</h3><div class="grid" style="margin-top:16px">' +
     (ev.length ? ev.map(function (e) {
       var d = new Date(e.date);

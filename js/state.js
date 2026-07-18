@@ -1,17 +1,21 @@
 export var routes = [
   ['home', 'Home'], ['about', 'About'], ['departments', 'Departments'],
   ['projects', 'Projects'], ['dashboard', 'Dashboard'], ['gallery', 'Gallery'],
-  ['events', 'Events'], ['blogs', 'Blogs'],
-  ['news', 'News'], ['contact', 'Contact']
+  ['blogs', 'Think Tank'], ['contact', 'Contact']
 ];
-export var key = 'fincell.pro.v2';
+export var key = 'fincell.pro.v3';
 export var app = {
   current: 'home',
   admin: false,
   dept: 'core',
-  galFilter: 'all',
+  galFilter: 'events',
+  galPeriod: 'current',
   adminTab: 'content',
-  contentTab: 'hero'
+  contentTab: 'hero',
+  projTab: 'fundamental',
+  projSearch: '',
+  projFilters: null,
+  thinkTankSection: 'blogs'
 };
 
 export var typo = {
@@ -65,36 +69,72 @@ export function defaultState() {
         ['2026 - The Present', 'Scaling research operations and building tools for the next generation of student analysts at Xavier\'s.']
       ],
       leaders: [
-        { name: 'Dr. Rajesh Mehta', role: 'Chairperson', image: '', bio: 'Providing strategic guidance and academic oversight to FINCELL\'s research initiatives.' },
-        { name: 'Prof. Anita Desai', role: 'Vice Chairperson', image: '', bio: 'Coordinating faculty engagement and research publication standards.' },
-        { name: 'Mr. Vikram Sharma', role: 'Fund Manager', image: '', bio: 'Managing the student-managed investment fund and portfolio allocation strategies.' }
+        { name: 'Pritesh Arte', role: 'Faculty In Charge', image: '', bio: 'Providing academic mentorship and guiding the cell\'s research direction with over a decade of experience in finance education.' },
+        { name: 'Dhun Chaudhary', role: 'President', image: '', bio: 'Leading the cell\'s strategic vision, overseeing all verticals and driving FINCELL\'s growth across the college.' },
+        { name: 'Arko Dalal', role: 'Vice President', image: '', bio: 'Supporting daily operations, coordinating cross-departmental projects, and ensuring research quality standards.' },
+        { name: 'Aarjav Jain', role: 'Fund Manager', image: '', bio: 'Managing the student-managed investment fund, portfolio allocation, and quantitative strategy development.' }
       ]
     },
-    departments: [
-      { id: 'quant', name: 'Quantitative', label: 'Quants', desc: 'Statistical modelling, algorithmic strategies, and factor-based research. The quantitative division builds the mathematical backbone of FINCELL\'s research output.', skills: ['Python', 'R', 'SQL', 'Time Series', 'Risk Models'], image: img('Quantitative'), members: [
-        { name: 'Rohit Nair', role: 'Quant Lead', image: '', published: true },
-        { name: 'Aditya Sharma', role: 'President', image: '', published: true }
-      ]},
-      { id: 'fundamental', name: 'Fundamental', label: 'Fundamental', desc: 'Equity research, DCF modelling, sector analysis, and valuation reports. The fundamental team digs deep into company financials to uncover value.', skills: ['DCF', 'Comps', 'Financials', 'Industry Analysis'], image: img('Fundamental'), members: [
-        { name: 'Ananya Rao', role: 'Research Lead', image: '', published: true },
-        { name: 'Priya Mehta', role: 'Vice President', image: '', published: true }
-      ]},
-      { id: 'editorial', name: 'Editorial', label: 'Editorial', desc: 'Finance commentary, newsletters, and long-form analysis. The editorial vertical ensures FINCELL\'s research reaches the widest possible audience.', skills: ['Writing', 'Editing', 'Data Viz', 'Content Strategy'], image: img('Editorial'), members: [
-        { name: 'Kabir Desai', role: 'Editorial Lead', image: '', published: true }
-      ]},
-      { id: 'operations', name: 'Operations', label: 'Ops', desc: 'Events, outreach, partnerships, and strategy. Operations keeps the cell running smoothly and drives its growth across the college.', skills: ['Event Mgmt', 'Outreach', 'Design', 'Strategy'], image: img('Operations'), members: [
-        { name: 'Sara Khan', role: 'Ops Lead', image: '', published: true }
-      ]}
+    organization: [
+      { name: 'Research House', role: '', level: 0, image: '', bio: '' },
+      { name: 'Quantitative Research', role: '', level: 1, image: '', bio: '' },
+      { name: 'Vanshika Soni', role: 'Head', level: 2, image: '', bio: 'Leading quantitative research initiatives, building algorithmic models and factor-based strategies for Indian markets.' },
+      { name: 'Pramit Datta', role: 'Subhead', level: 2, image: '', bio: 'Supporting quant research with statistical modelling, data analysis, and strategy backtesting.' },
+      { name: 'Fundamental Research', role: '', level: 1, image: '', bio: '' },
+      { name: 'Shubh Tandon', role: 'Head', level: 2, image: '', bio: 'Driving fundamental equity research with a focus on DCF modelling and sectoral analysis.' },
+      { name: 'Sector Heads', role: '', level: 2, image: '', bio: '' },
+      { name: 'TMT', role: '', level: 3, image: '', bio: '' },
+      { name: 'Shardul Joshi', role: 'TMT Head', level: 4, image: '', bio: 'Covering Technology, Media & Telecom sectors with in-depth equity research and valuation analysis.' },
+      { name: 'Healthcare', role: '', level: 3, image: '', bio: '' },
+      { name: 'Vijay Mudaliyar', role: 'Healthcare Head', level: 4, image: '', bio: 'Analysing the Healthcare sector including pharmaceuticals, hospitals, and health-tech.' },
+      { name: 'Consumer Discretionary', role: '', level: 3, image: '', bio: '' },
+      { name: 'Tanishka Goyal', role: 'Consumer Discretionary Head', level: 4, image: '', bio: 'Researching Consumer Discretionary sectors including retail, automobiles, and leisure.' },
+      { name: 'Cements', role: '', level: 3, image: '', bio: '' },
+      { name: 'Yatharth Agarwal', role: 'Cements Head', level: 4, image: '', bio: 'Covering the Cement and building materials sector with detailed financial analysis.' },
+      { name: 'Defence', role: '', level: 3, image: '', bio: '' },
+      { name: 'Abhinandan Vajpayee', role: 'Defence Head', level: 4, image: '', bio: 'Analysing the Defence and Aerospace sector including policy-driven growth narratives.' },
+      { name: 'IPO', role: '', level: 3, image: '', bio: '' },
+      { name: 'Abhishree Rai', role: 'IPO Head', level: 4, image: '', bio: 'Tracking primary market activity, IPO valuations, and listing performance analysis.' },
+      { name: 'REITs', role: '', level: 3, image: '', bio: '' },
+      { name: 'Prit Daki', role: 'REITs Head', level: 4, image: '', bio: 'Researching Real Estate Investment Trusts and the broader real estate sector.' },
+      { name: 'Content House', role: '', level: 0, image: '', bio: '' },
+      { name: 'Workshops', role: '', level: 1, image: '', bio: '' },
+      { name: 'Anoushkaa Majumdar', role: 'Head', level: 2, image: '', bio: 'Organising and conducting finance workshops, guest lectures, and skill-building sessions.' },
+      { name: 'Anushka Dalal', role: 'Subhead', level: 2, image: '', bio: 'Coordinating workshop logistics, speaker outreach, and participant engagement.' },
+      { name: 'Administration', role: '', level: 1, image: '', bio: '' },
+      { name: 'Helena Maria Joseph', role: 'Head', level: 2, image: '', bio: 'Managing daily operations, records, and administrative workflows of the cell.' },
+      { name: 'Nishtha Thakkar', role: 'Subhead', level: 2, image: '', bio: 'Supporting administrative processes, scheduling, and internal communications.' },
+      { name: 'Public Relations', role: '', level: 1, image: '', bio: '' },
+      { name: 'Ranya Sharma', role: 'Head', level: 2, image: '', bio: 'Managing external communications, media relations, and public outreach initiatives.' },
+      { name: 'Anoushka Sircar', role: 'Subhead', level: 2, image: '', bio: 'Assisting with PR campaigns, content distribution, and brand presence.' },
+      { name: 'Creatives', role: '', level: 1, image: '', bio: '' },
+      { name: 'Digital Creatives', role: '', level: 2, image: '', bio: '' },
+      { name: 'Elaine Menezes', role: 'Head', level: 3, image: '', bio: 'Creating visual assets, digital content, and branding materials for all verticals.' },
+      { name: 'FnD', role: '', level: 2, image: '', bio: '' },
+      { name: 'Ansh Vador', role: 'Head', level: 3, image: '', bio: 'Leading Food & Design initiatives, blending creative concepts with student engagement.' },
+      { name: 'Sponsorships & Networking', role: '', level: 1, image: '', bio: '' },
+      { name: 'Sponsorships', role: '', level: 2, image: '', bio: '' },
+      { name: 'Natania Prabhakar', role: 'Head', level: 3, image: '', bio: 'Securing sponsorships, building corporate partnerships, and managing funding relationships.' },
+      { name: 'Networking', role: '', level: 2, image: '', bio: '' },
+      { name: 'Yesha D\'Souza', role: 'Head', level: 3, image: '', bio: 'Building industry connections, alumni relations, and professional networking opportunities.' },
+      { name: 'Think Tank', role: '', level: 1, image: '', bio: '' },
+      { name: 'Blogs', role: '', level: 2, image: '', bio: '' },
+      { name: 'Aditi Prabhu', role: 'Head', level: 3, image: '', bio: 'Leading editorial content strategy, blog publishing, and long-form financial writing.' },
+      { name: 'Cleandro Rozario', role: 'Subhead', level: 3, image: '', bio: 'Managing blog schedules, editing submissions, and maintaining content quality.' },
+      { name: 'Podcasts', role: '', level: 2, image: '', bio: '' },
+      { name: 'Anna Cherian', role: 'Head', level: 3, image: '', bio: 'Producing and hosting finance podcasts featuring industry experts and student insights.' },
+      { name: 'Darshan', role: 'Subhead', level: 3, image: '', bio: 'Handling audio production, editing, and podcast distribution across platforms.' }
     ],
     projects: {
-      pdfs: [
-        { name: 'Indian FMCG Sector — Equity Outlook', url: '#' },
-        { name: 'Factor Modelling in Indian Markets', url: '#' },
-        { name: 'The Rise of Fintech in India', url: '#' }
+      fundamental: [
+        { title: 'Indian FMCG Sector — Equity Outlook', desc: 'Comprehensive equity research report covering ten major FMCG companies with DCF valuations and industry analysis.', link: '#', year: '2026' },
+        { title: 'The Rise of Fintech in India', desc: 'An analysis of India\'s fintech revolution — payments, lending, insurtech, and the regulatory landscape.', link: '#', year: '2026' },
+        { title: 'Factor Modelling in Indian Markets', desc: 'A quantitative deep-dive into factor-based investing strategies and their application in Indian equities.', link: '#', year: '2025' }
       ],
-      repos: [
-        { title: 'fincell-dashboard', url: 'https://github.com/fincell' },
-        { title: 'quant-research-kit', url: 'https://github.com/fincell' }
+      quantitative: [
+        { title: 'FINCELL Research Dashboard', desc: 'Open-source quantitative research dashboard with real-time data pipelines and interactive visualizations.', link: '#', year: '2026' },
+        { title: 'Volatility Modelling for Indian Indices', desc: 'GARCH and stochastic volatility models applied to Nifty 50 and Bank Nifty for risk estimation.', link: '#', year: '2026' },
+        { title: 'Algorithmic Trading Strategy Backtester', desc: 'Python-based framework for backtesting factor-based strategies on Indian equity market data.', link: '#', year: '2025' }
       ]
     },
 
@@ -117,22 +157,24 @@ export function defaultState() {
       { id: 'b2', t: 'Factor Investing 101', c: 'Quant', p: 'An introduction to factor-based investing and how it applies to Indian markets.', a: 'Rohit Nair', rt: '8 min read', l: '', published: true },
       { id: 'b3', t: 'The Rise of Retail Investors', c: 'Markets', p: 'How retail participation is reshaping Indian equity markets in 2026.', a: 'Ananya Rao', rt: '5 min read', l: '', published: true }
     ],
+    podcasts: [
+      { id: 'p1', t: 'FINCELL Markets Podcast', c: 'Markets', p: 'Weekly analysis of Indian equity markets with student analysts.', a: 'Anna Cherian', rt: '25 min', l: '', published: true },
+      { id: 'p2', t: 'Interview: Alumni in Finance', c: 'Career', p: 'Conversations with Xavier\'s alumni working in investment banking and asset management.', a: 'Darshan', rt: '35 min', l: '', published: true }
+    ],
     gallery: [
-      { id: 'g1', name: 'Markets in Motion 2025', category: 'events', url: img('Event 2025'), published: true },
-      { id: 'g2', name: 'Quant Workshop', category: 'workshops', url: img('Workshop'), published: true },
-      { id: 'g3', name: 'Team Summit', category: 'team', url: img('Team'), published: true },
-      { id: 'g4', name: 'Guest Lecture Series', category: 'events', url: img('Lecture'), published: true }
+      { id: 'g1', name: 'Markets in Motion 2025', category: 'events', period: 'past', url: img('Event 2025'), published: true },
+      { id: 'g2', name: 'Quant Workshop', category: 'workshop', period: 'past', url: img('Workshop'), published: true },
+      { id: 'g4', name: 'Guest Lecture Series', category: 'events', period: 'past', url: img('Lecture'), published: true }
     ],
     contact: {
       title: 'Get in touch',
       body: 'Have a question, collaboration idea, or want to join FINCELL? We\'d love to hear from you.',
-      email: 'fincell@xaviers.edu',
-      phone: '+91 22 2265 1234',
+      email: 'fincell.xaviers@gmail.com',
       address: 'St. Xavier\'s College, 5 Mahapalika Marg, Mumbai 400001'
     },
     footer: {
       body: 'Student-driven financial research and market intelligence at St. Xavier\'s College, Mumbai.',
-      email: 'fincell@xaviers.edu',
+      email: 'fincell.xaviers@gmail.com',
       address: 'St. Xavier\'s College, 5 Mahapalika Marg, Mumbai 400001',
       socials: [
         ['X', '#'], ['LI', '#'], ['IG', '#'], ['GH', '#']
@@ -155,11 +197,6 @@ function load() {
 export function save() { localStorage.setItem(key, JSON.stringify(state)) }
 
 export function set(path, val) {
-  if (path.indexOf('_repo') === 0) {
-    window.tmpRepo = window.tmpRepo || {};
-    window.tmpRepo[path.split('.')[1]] = val;
-    return;
-  }
   var p = path.split('.'), o = state;
   while (p.length > 1) o = o[p.shift()];
   o[p[0]] = p[0] === 'skills' ? String(val).split(',').map(function (s) { return s.trim() }).filter(Boolean) : val;
@@ -173,13 +210,13 @@ export function del(path) {
 
 export function add(type) {
   if (type === 'stat') state.stats.push({ label: 'New Stat', value: 1 });
-  else if (type === 'repo') {
-    var r = window.tmpRepo || {};
-    if (r.title && r.url) state.projects.repos.push({ title: r.title, url: r.url });
-  } else if (type === 'events') state.events.push({ id: id(), title: 'New Event', date: new Date().toISOString().slice(0, 10), time: '', venue: '', desc: '', published: true });
-  else if (type === 'departments') state.departments.push({ id: id(), name: 'New Department', label: 'Label', desc: 'Description', skills: [], image: img('Department'), members: [], published: true });
+  else if (type === 'events') state.events.push({ id: id(), title: 'New Event', date: new Date().toISOString().slice(0, 10), time: '', venue: '', desc: '', published: true });
+  else if (type === 'organization') state.organization.push({ name: 'New Entry', role: '', level: 1, image: '', bio: '' });
+  else if (type === 'project-fundamental') state.projects.fundamental.push({ title: 'New Project', desc: '', link: '#', year: '2026' });
+  else if (type === 'project-quantitative') state.projects.quantitative.push({ title: 'New Project', desc: '', link: '#', year: '2026' });
   else if (type === 'news') state.news.unshift({ id: id(), h: 'New Headline', c: 'Markets', e: 'Summary', d: 'June 2026', l: '', published: true });
   else if (type === 'blogs') state.blogs.unshift({ id: id(), t: 'New Blog', c: 'Finance', p: 'Preview', a: 'FINCELL', rt: '5 min read', l: '', published: true });
+  else if (type === 'podcasts') state.podcasts.unshift({ id: id(), t: 'New Podcast', c: 'Markets', p: 'Description', a: 'Host', rt: '20 min', l: '', published: true });
   else if (type === 'about-value') state.about.values.push(['New Value', 'Description']);
   else if (type === 'about-timeline') state.about.timeline.push(['New Date', 'Description']);
 }
