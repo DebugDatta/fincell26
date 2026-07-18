@@ -31,7 +31,8 @@ export default function contact() {
 
   html += '<div class="contact-divider">send us a message</div>';
 
-  html += '<form class="contact-form" id="contactForm" netlify name="contact">' +
+  html +=   '<form class="contact-form" id="contactForm" netlify name="contact-form" action="/">' +
+    '<input type="hidden" name="form-name" value="contact-form">' +
     '<div class="field"><label>Name</label><input name="name" required></div>' +
     '<div class="field"><label>Email</label><input type="email" name="email" required></div>' +
     '<div class="field"><label>Message</label><textarea rows="5" name="message" required></textarea></div>' +
