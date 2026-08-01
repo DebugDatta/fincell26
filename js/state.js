@@ -4,6 +4,8 @@ export var routes = [
   ['blogs', 'Think Tank'], ['contact', 'Contact']
 ];
 export var key = 'fincell.pro.v3';
+export var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0264DeANeZ2LPitsFxPUiluflR763JPaH_aQXTOLOcvZKeg8XgsmpGiYQ2hUeWeV2zQ/exec';
+export var STATE_ENDPOINT = '/api/state';
 export var app = {
   current: 'home',
   admin: false,
@@ -28,9 +30,41 @@ export var typo = {
 };
 
 function img(label, a, b) {
-  a = a || '#63d0c7'; b = b || '#7aa7ff';
-  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M0 40h80M40 0v80" stroke="rgba(255,255,255,.12)"/></pattern></defs><rect width="1200" height="800" fill="#0b1622"/><rect width="1200" height="800" fill="url(#p)"/><circle cx="910" cy="130" r="310" fill="url(#g)" opacity=".28"/><path d="M110 560 C260 410 360 470 470 330 S710 260 850 390 1010 450 1110 300" fill="none" stroke="' + a + '" stroke-width="10" stroke-linecap="round" opacity=".88"/><text x="88" y="150" fill="#f4f8fb" font-family="Arial" font-size="54" font-weight="800">' + label + '</text><text x="92" y="205" fill="#9aa8b4" font-family="Arial" font-size="24">FINCELL visual asset</text></svg>';
+  var light = document.documentElement.getAttribute('data-theme') === 'light';
+  if (light) { a = a || '#0d857c'; b = b || '#2f6fd0'; }
+  else { a = a || '#63d0c7'; b = b || '#7aa7ff'; }
+  var bg = light ? '#f4f8fb' : '#0b1622';
+  var pat = light ? 'rgba(16,45,70,.08)' : 'rgba(255,255,255,.12)';
+  var title = light ? '#0b1e2b' : '#f4f8fb';
+  var sub = light ? '#58727f' : '#9aa8b4';
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs>'
+    + '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient>'
+    + '<pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M0 40h80M40 0v80" stroke="' + pat + '"/></pattern>'
+    + '</defs>'
+    + '<rect width="1200" height="800" fill="' + bg + '"/>'
+    + '<rect width="1200" height="800" fill="url(#p)"/>'
+    + '<circle cx="910" cy="130" r="310" fill="url(#g)" opacity="' + (light ? '.16' : '.28') + '"/>'
+    + '<path d="M110 560 C260 410 360 470 470 330 S710 260 850 390 1010 450 1110 300" fill="none" stroke="' + a + '" stroke-width="10" stroke-linecap="round" opacity=".88"/>'
+    + '<text x="88" y="150" fill="' + title + '" font-family="Arial" font-size="54" font-weight="800">' + label + '</text>'
+    + '<text x="92" y="205" fill="' + sub + '" font-family="Arial" font-size="24">FINCELL visual asset</text></svg>';
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function phLabel(url) {
+  try {
+    var s = decodeURIComponent(String(url).split(';charset=utf-8,')[1] || '');
+    var m = s.match(/<text[^>]*>([\s\S]*?)<\/text>/);
+    return m ? m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"') : '';
+  } catch (e) { return '' }
+}
+
+export function refreshImages() {
+  if (!state || !state.gallery) return;
+  state.gallery.forEach(function (g) {
+    if (/^data:image\/svg\+xml/.test(String(g.url || ''))) {
+      g.url = img(phLabel(g.url) || g.name || 'FINCELL');
+    }
+  });
 }
 
 export function defaultState() {
@@ -194,7 +228,64 @@ function load() {
   catch (e) { return defaultState() }
 }
 
-export function save() { localStorage.setItem(key, JSON.stringify(state)) }
+export function save() {
+  localStorage.setItem(key, JSON.stringify(state));
+  if (app.admin) {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(flushSync, 1000)
+  }
+}
+
+var syncTimer = null, syncing = false, queued = false;
+
+function flushSync() {
+  if (syncing) { queued = true; return }
+  var pass = sessionStorage.getItem('fcpass');
+  if (!pass) return;
+  syncing = true;
+  fetch(SCRIPT_URL + '?action=save', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ password: pass, state: state }) })
+    .then(function (r) { return r.text() })
+    .then(function (txt) {
+      var d = JSON.parse(txt);
+      if (d && d.state) {
+        state = d.state;
+        localStorage.setItem(key, JSON.stringify(state))
+      }
+    })
+    .catch(function () {})
+    .then(function () {
+      syncing = false;
+      if (queued) { queued = false; flushSync() }
+    })
+}
+
+export function loadRemote(cb) {
+  fetch(STATE_ENDPOINT, { cache: 'reload' })
+    .then(function (r) { if (!r.ok) throw new Error('state ' + r.status); return r.text() })
+    .then(function (txt) {
+      var remote = JSON.parse(txt);
+      if (typeof remote === 'string') remote = JSON.parse(remote);
+      if (!remote || remote.error) throw new Error('remote error');
+      state = Object.assign(defaultState(), state, remote);
+      localStorage.setItem(key, JSON.stringify(state));
+      cb && cb()
+    })
+    .catch(function () {})
+}
+
+export function verifyLogin(user, pass) {
+  return fetch(SCRIPT_URL + '?action=verify', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ user: user, password: pass }) })
+    .then(function (r) { return r.text() })
+    .then(function (txt) { var d = JSON.parse(txt); return !!(d && d.ok) })
+    .catch(function () { return false })
+}
+
+export function uploadMedia(name, dataUrl) {
+  return fetch(SCRIPT_URL + '?action=media', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ name: name, dataUrl: dataUrl }) })
+    .then(function (r) { return r.text() })
+    .then(function (txt) { var d = JSON.parse(txt); return d && d.url ? d.url : null })
+    .catch(function () { return null })
+}
 
 export function set(path, val) {
   var p = path.split('.'), o = state;

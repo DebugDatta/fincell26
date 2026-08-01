@@ -30,7 +30,11 @@ export function applyType(p) {
   r.setProperty('--heading-lh', t.headingLh);
   r.setProperty('--body-lh', t.bodyLh);
   r.setProperty('--button-lh', t.buttonLh);
-  r.setProperty('--page-text', t.textColor)
+  if (document.documentElement.getAttribute('data-theme') === 'light') {
+    r.removeProperty('--page-text');
+  } else {
+    r.setProperty('--page-text', t.textColor);
+  }
 }
 
 export function shell(title, eye, body) {
@@ -87,17 +91,17 @@ export function line(sel, v) {
   el.innerHTML = '<svg class="spark-line" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">'
     + '<defs>'
     + '<linearGradient id="' + gradId + 'a" x1="0" y1="0" x2="0" y2="1">'
-    + '<stop offset="0%" stop-color="#4ecdc4" stop-opacity=".18"/>'
-    + '<stop offset="100%" stop-color="#4ecdc4" stop-opacity="0"/>'
+    + '<stop offset="0%" stop-color="var(--teal)" stop-opacity=".18"/>'
+    + '<stop offset="100%" stop-color="var(--teal)" stop-opacity="0"/>'
     + '</linearGradient>'
     + '<linearGradient id="' + gradId + 'b" x1="0" y1="0" x2="1" y2="0">'
-    + '<stop offset="0%" stop-color="#4ecdc4" stop-opacity=".5"/>'
-    + '<stop offset="100%" stop-color="#7aa7ff" stop-opacity=".9"/>'
+    + '<stop offset="0%" stop-color="var(--teal)" stop-opacity=".5"/>'
+    + '<stop offset="100%" stop-color="var(--blue)" stop-opacity=".9"/>'
     + '</linearGradient>'
     + '</defs>'
     + '<path d="' + fill + '" fill="url(#' + gradId + 'a)"/>'
     + '<path d="' + d + '" fill="none" stroke="url(#' + gradId + 'b)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
-    + '<circle cx="' + xs[xs.length - 1] + '" cy="' + ys[ys.length - 1] + '" r="4" fill="#4ecdc4" opacity=".9"/>'
+    + '<circle cx="' + xs[xs.length - 1] + '" cy="' + ys[ys.length - 1] + '" r="4" fill="var(--teal)" opacity=".9"/>'
     + '<circle cx="' + xs[xs.length - 1] + '" cy="' + ys[ys.length - 1] + '" r="8" fill="rgba(78,205,196,.15)"/>'
     + '</svg>';
 }

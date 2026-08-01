@@ -1,5 +1,5 @@
 import { esc, input, area, $ } from '../utils.js';
-import { state, save, set, del, add, app, routes } from '../state.js';
+import { state, save, set, del, add, app, routes, uploadMedia } from '../state.js';
 
 function imageUpload(label, path, currentVal) {
   var hasImg = currentVal && currentVal.indexOf('data:image') === 0;
@@ -113,10 +113,10 @@ function mediaAdmin() {
   var cats = ['events', 'workshop'];
   return '<h2>Media Library</h2><div class="admin-section"><h4>Upload Images</h4>' +
     '<div class="editor-grid" style="grid-template-columns:1fr 1fr">' +
-    '<label class="field"><span>Period</span><select id="uploadPeriod" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:rgba(255,255,255,.03);color:var(--text);outline:none">' +
+    '<label class="field"><span>Period</span><select id="uploadPeriod" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--panel-2);color:var(--text);outline:none">' +
     periods.map(function (p) { return '<option value="' + p + '">' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>' }).join('') +
     '</select></label>' +
-    '<label class="field"><span>Category</span><select id="uploadCategory" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:rgba(255,255,255,.03);color:var(--text);outline:none">' +
+    '<label class="field"><span>Category</span><select id="uploadCategory" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--panel-2);color:var(--text);outline:none">' +
     cats.map(function (c) { return '<option value="' + c + '">' + (c === 'workshop' ? 'Workshop' : 'Events') + '</option>' }).join('') +
     '</select></label></div>' +
     '<div class="field"><label>Select gallery images</label><input id="galleryUpload" type="file" accept="image/*" multiple></div></div>' +
@@ -125,10 +125,10 @@ function mediaAdmin() {
       return '<div class="admin-row" style="flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:140px">' +
         '<img src="' + g.url + '" style="width:60px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">' +
         '<span style="font-size:13px">' + esc(g.name) + '</span></div>' +
-        '<select data-path="gallery.' + i + '.period" style="border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:rgba(255,255,255,.03);color:var(--text);font-size:12px;outline:none">' +
+        '<select data-path="gallery.' + i + '.period" style="border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:var(--panel-2);color:var(--text);font-size:12px;outline:none">' +
         periods.map(function (p) { return '<option value="' + p + '"' + ((g.period || 'past') === p ? ' selected' : '') + '>' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>' }).join('') +
         '</select>' +
-        '<select data-path="gallery.' + i + '.category" style="border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:rgba(255,255,255,.03);color:var(--text);font-size:12px;outline:none">' +
+        '<select data-path="gallery.' + i + '.category" style="border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:var(--panel-2);color:var(--text);font-size:12px;outline:none">' +
         cats.map(function (c) { return '<option value="' + c + '"' + (g.category === c ? ' selected' : '') + '>' + (c === 'workshop' ? 'Workshop' : 'Events') + '</option>' }).join('') +
         '</select>' +
         '<button class="btn subtle danger" data-del="gallery.' + i + '">Delete</button></div>'
@@ -142,7 +142,7 @@ function typoAdmin() {
     routes.map(function (r) {
       var t = state.typography[r[0]];
       return '<div class="admin-item-card"><h4 style="margin-top:0;margin-bottom:12px;text-transform:none;font-family:var(--heading-font);color:var(--text)">' + r[1] + '</h4><div class="editor-grid">' +
-        '<label class="field"><span>Heading font</span><select data-typo="' + r[0] + '.headingFont" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:rgba(255,255,255,.03);color:var(--text);outline:none">' +
+        '<label class="field"><span>Heading font</span><select data-typo="' + r[0] + '.headingFont" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--panel-2);color:var(--text);outline:none">' +
         fonts.map(function (f) { return '<option ' + (t.headingFont === f ? 'selected' : '') + '>' + f + '</option>' }).join('') +
         '</select></label>' +
         input('Heading size', 'typography.' + r[0] + '.headingSize', t.headingSize) +
@@ -157,7 +157,7 @@ function sectionAdmin() {
     state.order.map(function (id, i) {
       return '<div class="admin-row"><div style="display:flex;align-items:center;gap:10px;flex:1">' +
         '<strong style="min-width:100px;text-transform:capitalize">' + id + '</strong>' +
-        '<select data-hidden="' + id + '" style="padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.03);color:var(--text);font-size:12px;outline:none">' +
+        '<select data-hidden="' + id + '" style="padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--text);font-size:12px;outline:none">' +
         '<option value="false" ' + (!state.hidden[id] ? 'selected' : '') + '>Visible</option>' +
         '<option value="true" ' + (state.hidden[id] ? 'selected' : '') + '>Hidden</option></select></div>' +
         '<div style="display:flex;gap:4px"><button class="btn subtle" data-order="' + i + '.-1">Up</button>' +
@@ -275,9 +275,11 @@ function adminBind(renderFn) {
       Array.prototype.forEach.call(e.target.files, function (file) {
         var r = new FileReader();
         r.onload = function () {
-          state.gallery.push({ id: Math.random().toString(36).slice(2, 9), name: file.name, category: cat, period: period, url: r.result, published: true });
-          save();
-          renderFn()
+          uploadMedia(file.name, r.result).then(function (url) {
+            state.gallery.push({ id: Math.random().toString(36).slice(2, 9), name: file.name, category: cat, period: period, url: url || r.result, published: true });
+            save();
+            renderFn()
+          })
         };
         r.readAsDataURL(file)
       })

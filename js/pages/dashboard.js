@@ -1204,7 +1204,7 @@ function renderCandles(result, el) {
   for (var g = 0; g <= gridLines; g++) {
     var gy = P + (H - P * 2) * g / gridLines;
     var gv = max - range * g / gridLines;
-    html += '<line x1="' + P + '" y1="' + gy + '" x2="' + (W - P) + '" y2="' + gy + '" stroke="rgba(255,255,255,.04)" stroke-width="1"/>' +
+    html += '<line x1="' + P + '" y1="' + gy + '" x2="' + (W - P) + '" y2="' + gy + '" stroke="var(--line)" stroke-width="1"/>' +
       '<text x="' + (P - 4) + '" y="' + (gy + 3) + '" fill="var(--dim)" font-size="8" text-anchor="end">' + fmtPrice(gv) + '</text>';
   }
 

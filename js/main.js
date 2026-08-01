@@ -1,4 +1,4 @@
-import { state, app, routes } from './state.js';
+import { state, app, routes, refreshImages, loadRemote, verifyLogin } from './state.js';
 import { $, $$, esc, pathOf, pageFromPath, applyType, foot, toast, counters } from './utils.js';
 import { initMarket } from './market.js';
 import { bindDash } from './pages/dashboard.js';
@@ -132,16 +132,25 @@ function bind() {
   var lb = $('#loginBtn');
   if (lb) {
     lb.onclick = function () {
-      if ($('#loginUser').value === 'admin' && $('#loginPass').value === 'fincellgoats') {
-        app.admin = true;
-        sessionStorage.setItem('fcadmin', '1');
-        render()
-      } else toast('Incorrect credentials')
+      var u = $('#loginUser').value, p = $('#loginPass').value;
+      verifyLogin(u, p).then(function (ok) {
+        if (ok) {
+          app.admin = true;
+          sessionStorage.setItem('fcadmin', '1');
+          sessionStorage.setItem('fcpass', p);
+          render()
+        } else toast('Incorrect credentials')
+      })
     }
   }
   var lob = $('#logoutBtn');
   if (lob) {
-    lob.onclick = function () { app.admin = false; sessionStorage.removeItem('fcadmin'); render() }
+    lob.onclick = function () {
+      app.admin = false;
+      sessionStorage.removeItem('fcadmin');
+      sessionStorage.removeItem('fcpass');
+      render()
+    }
   }
   $$('[data-admin-tab]').forEach(function (b) {
     b.onclick = function () {
@@ -215,8 +224,37 @@ function bg() {
   tick()
 }
 
+function currentTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+}
+
+function applyTheme(theme) {
+  var root = document.documentElement;
+  if (theme === 'light') root.setAttribute('data-theme', 'light');
+  else root.removeAttribute('data-theme');
+  applyType(app.current);
+  refreshImages();
+  $$('#main img[src^="data:image/svg+xml"]').forEach(function (img) {
+    var btn = img.closest('[data-lightbox]');
+    if (!btn) return;
+    var g = state.gallery.find(function (x) { return x.id === btn.dataset.lightbox });
+    if (g && img.getAttribute('src') !== g.url) img.src = g.url;
+  });
+  var t = $('#themeToggle');
+  if (t) {
+    t.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+    t.setAttribute('aria-label', theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
+  }
+  try { localStorage.setItem('fcTheme', theme) } catch (e) {}
+}
+
 function init() {
   app.admin = sessionStorage.getItem('fcadmin') === '1';
+
+  $('#themeToggle').onclick = function () {
+    applyTheme(currentTheme() === 'light' ? 'dark' : 'light')
+  };
+  applyTheme(currentTheme());
 
   $('#menuToggle').onclick = function () {
     document.body.classList.toggle('nav-open');
@@ -275,7 +313,8 @@ function init() {
   })();
 
   bg();
-  nav(pageFromPath(), false)
+  nav(pageFromPath(), false);
+  loadRemote(render)
 }
 
 document.addEventListener('DOMContentLoaded', init)
