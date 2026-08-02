@@ -1,11 +1,36 @@
+import { REST, AUTH, STORAGE, STORAGE_PUBLIC_PREFIX, STORAGE_BUCKET, ANON_KEY, ADMIN_EMAIL } from './supabase.js';
+
 export var routes = [
   ['home', 'Home'], ['about', 'About'], ['departments', 'Departments'],
   ['projects', 'Projects'], ['dashboard', 'Dashboard'], ['gallery', 'Gallery'],
   ['blogs', 'Think Tank'], ['contact', 'Contact']
 ];
-export var key = 'fincell.pro.v3';
-export var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0264DeANeZ2LPitsFxPUiluflR763JPaH_aQXTOLOcvZKeg8XgsmpGiYQ2hUeWeV2zQ/exec';
-export var STATE_ENDPOINT = '/api/state';
+export var key = 'fincell.pro.v4';
+
+var sessKey = 'fincell.sess';
+
+function token() {
+  try {
+    var s = JSON.parse(sessionStorage.getItem(sessKey));
+    return (s && s.access_token) || ''
+  } catch (e) { return '' }
+}
+
+function authHeaders() {
+  return { apikey: ANON_KEY, Authorization: 'Bearer ' + (token() || ANON_KEY), 'Content-Type': 'application/json' }
+}
+
+export function restoreSession() {
+  try {
+    var s = JSON.parse(sessionStorage.getItem(sessKey));
+    return !!(s && s.access_token && (!s.expires_at || s.expires_at > Date.now()))
+  } catch (e) { return false }
+}
+
+export function logout() {
+  try { sessionStorage.removeItem(sessKey) } catch (e) {}
+  app.admin = false
+}
 export var app = {
   current: 'home',
   admin: false,
@@ -223,67 +248,157 @@ function load() {
   try {
     var saved = JSON.parse(localStorage.getItem(key) || '{}');
     if (saved.order) saved.order = saved.order.filter(function (id) { return routes.some(function (r) { return r[0] === id }) });
-    return Object.assign(defaultState(), saved);
+    var s = Object.assign(defaultState(), saved);
+    return s;
   }
   catch (e) { return defaultState() }
 }
 
+function notify(m) {
+  try { document.dispatchEvent(new CustomEvent('state:toast', { detail: m })) } catch (e) {}
+}
+
 export function save() {
-  localStorage.setItem(key, JSON.stringify(state));
+  try { localStorage.setItem(key, JSON.stringify(state)) } catch (e) {}
   if (app.admin) {
+    dirty = true;
+    try { localStorage.setItem(key + '.unsynced', '1') } catch (e) {}
     clearTimeout(syncTimer);
     syncTimer = setTimeout(flushSync, 1000)
   }
 }
 
-var syncTimer = null, syncing = false, queued = false;
+var syncTimer = null, syncing = false, queued = false, dirty = false;
 
 function flushSync() {
   if (syncing) { queued = true; return }
-  var pass = sessionStorage.getItem('fcpass');
-  if (!pass) return;
+  if (!token()) return;
   syncing = true;
-  fetch(SCRIPT_URL + '?action=save', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ password: pass, state: state }) })
-    .then(function (r) { return r.text() })
-    .then(function (txt) {
-      var d = JSON.parse(txt);
-      if (d && d.state) {
-        state = d.state;
-        localStorage.setItem(key, JSON.stringify(state))
-      }
+  fetch(REST + '/state?on_conflict=id', {
+    method: 'POST',
+    headers: Object.assign(authHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+    body: JSON.stringify({ id: 1, data: state })
+  })
+    .then(function (r) { return r.json() })
+    .then(function (d) {
+      if (d && d.error) { notify('Save failed. Changes kept locally.'); return }
+      if (d && d[0] && d[0].data) applyServerState(d[0].data);
+      dirty = false;
+      try { localStorage.removeItem(key + '.unsynced') } catch (e) {}
     })
-    .catch(function () {})
+    .catch(function () { notify('Save failed. Changes kept locally.') })
     .then(function () {
       syncing = false;
       if (queued) { queued = false; flushSync() }
     })
 }
 
+function applyServerState(remote) {
+  var i, l, r;
+  if (Array.isArray(remote.gallery))
+    for (i = 0; i < remote.gallery.length; i++) {
+      l = state.gallery && state.gallery[i]; r = remote.gallery[i];
+      if (l && r && /^data:image/.test(l.url || '') && !/^data:image/.test(r.url || '')) l.url = r.url
+    }
+  if (Array.isArray(remote.organization))
+    for (i = 0; i < remote.organization.length; i++) {
+      l = state.organization && state.organization[i]; r = remote.organization[i];
+      if (l && r && /^data:image/.test(l.image || '') && !/^data:image/.test(r.image || '')) l.image = r.image
+    }
+  if (remote.about && Array.isArray(remote.about.leaders))
+    for (i = 0; i < remote.about.leaders.length; i++) {
+      l = state.about && state.about.leaders && state.about.leaders[i]; r = remote.about.leaders[i];
+      if (l && r && /^data:image/.test(l.image || '') && !/^data:image/.test(r.image || '')) l.image = r.image
+    }
+  try { localStorage.setItem(key, JSON.stringify(state)) } catch (e) {}
+}
+
 export function loadRemote(cb) {
-  fetch(STATE_ENDPOINT, { cache: 'reload' })
-    .then(function (r) { if (!r.ok) throw new Error('state ' + r.status); return r.text() })
-    .then(function (txt) {
-      var remote = JSON.parse(txt);
-      if (typeof remote === 'string') remote = JSON.parse(remote);
-      if (!remote || remote.error) throw new Error('remote error');
-      state = Object.assign(defaultState(), state, remote);
-      localStorage.setItem(key, JSON.stringify(state));
+  fetch(REST + '/state?id=eq.1&select=data', { headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY } })
+    .then(function (r) { if (!r.ok) throw new Error('state ' + r.status); return r.json() })
+    .then(function (rows) {
+      var remote = rows && rows[0] && rows[0].data;
+      if (!remote || typeof remote !== 'object') throw new Error('no state');
+      var unsynced = false;
+      try { unsynced = localStorage.getItem(key + '.unsynced') } catch (e) {}
+      if (!dirty && !unsynced) {
+        state = Object.assign(defaultState(), state, remote);
+        localStorage.setItem(key, JSON.stringify(state));
+      }
       cb && cb()
     })
     .catch(function () {})
 }
 
 export function verifyLogin(user, pass) {
-  return fetch(SCRIPT_URL + '?action=verify', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ user: user, password: pass }) })
-    .then(function (r) { return r.text() })
-    .then(function (txt) { var d = JSON.parse(txt); return !!(d && d.ok) })
+  if (String(user || '').trim().toLowerCase() !== 'admin' || !pass) return Promise.resolve(false);
+  return fetch(AUTH + '/token?grant_type=password', {
+    method: 'POST',
+    headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: ADMIN_EMAIL, password: pass })
+  })
+    .then(function (r) { return r.json() })
+    .then(function (d) {
+      if (d && d.access_token) {
+        try {
+          sessionStorage.setItem(sessKey, JSON.stringify({
+            access_token: d.access_token,
+            refresh_token: d.refresh_token || '',
+            expires_at: Date.now() + ((d.expires_in || 3600) * 1000)
+          }))
+        } catch (e) {}
+        return true
+      }
+      return false
+    })
     .catch(function () { return false })
 }
 
+export function deleteMedia(url) {
+  if (!url || typeof url !== 'string' || url.indexOf(STORAGE_PUBLIC_PREFIX) !== 0) return Promise.resolve(false);
+  var path = url.slice(STORAGE_PUBLIC_PREFIX.length);
+  if (!path) return Promise.resolve(false);
+  return fetch(STORAGE + '/object/' + STORAGE_BUCKET + '/' + path, {
+    method: 'DELETE',
+    headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + token() }
+  })
+    .then(function (r) { return r.ok })
+    .catch(function () { return false })
+}
+
+function beaconFlush() {
+  if (!token() || !app.admin || !dirty) return;
+  dirty = false;
+  try {
+    fetch(REST + '/state?on_conflict=id', {
+      method: 'POST',
+      keepalive: true,
+      headers: Object.assign(authHeaders(), { 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({ id: 1, data: state })
+    })
+  } catch (e) {}
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', beaconFlush);
+  window.addEventListener('beforeunload', beaconFlush);
+}
+
 export function uploadMedia(name, dataUrl) {
-  return fetch(SCRIPT_URL + '?action=media', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ name: name, dataUrl: dataUrl }) })
-    .then(function (r) { return r.text() })
-    .then(function (txt) { var d = JSON.parse(txt); return d && d.url ? d.url : null })
+  var m = /^data:([^;]+);base64,(.+)$/.exec(String(dataUrl || ''));
+  if (!m) return Promise.resolve(null);
+  var mime = m[1];
+  var ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' })[mime] || 'png';
+  var path = 'uploads/' + Date.now() + '-' + String(name || 'image').replace(/[^a-z0-9_.-]/gi, '') + '.' + ext;
+  var bin = atob(m[2]);
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return fetch(STORAGE + '/object/' + STORAGE_BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + token(), 'Content-Type': mime },
+    body: bytes
+  })
+    .then(function (r) { return r.json() })
+    .then(function (d) { return d && !d.error ? STORAGE_PUBLIC_PREFIX + path : null })
     .catch(function () { return null })
 }
 

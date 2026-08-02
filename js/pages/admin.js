@@ -1,8 +1,8 @@
-import { esc, input, area, $ } from '../utils.js';
-import { state, save, set, del, add, app, routes, uploadMedia } from '../state.js';
+import { esc, input, area, $, toast } from '../utils.js';
+import { state, save, set, del, add, app, routes, uploadMedia, deleteMedia } from '../state.js';
 
 function imageUpload(label, path, currentVal) {
-  var hasImg = currentVal && currentVal.indexOf('data:image') === 0;
+  var hasImg = currentVal && (/^data:image/.test(currentVal) || /\/api\/media/.test(currentVal) || /^https?:\/\//.test(currentVal));
   return '<div class="field image-upload"><span>' + label + '</span>' +
     (hasImg ? '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="' + esc(currentVal) + '" style="width:60px;height:40px;object-fit:cover;border-radius:6px">' +
     '<button class="btn subtle danger" data-clear-image="' + path + '" type="button">Remove</button></div>' : '') +
@@ -201,14 +201,24 @@ function adminBind(renderFn) {
     }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-del]')).forEach(function (b) {
-    b.onclick = function () { del(b.dataset.del); save(); renderFn() }
+    b.onclick = function () {
+      var p = b.dataset.del, url = '';
+      if (/^gallery\.\d+$/.test(p)) {
+        var gi = +p.split('.')[1];
+        if (state.gallery[gi]) url = state.gallery[gi].url || ''
+      }
+      del(p);
+      save();
+      adminPanel(renderFn);
+      if (url) deleteMedia(url)
+    }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-order]')).forEach(function (b) {
     b.onclick = function () {
       var parts = b.dataset.order.split('.'), arr = state[parts[0]], i = +parts[1], j = i + (+parts[2]);
       if (arr && j >= 0 && j < arr.length) {
         var x = arr[i]; arr[i] = arr[j]; arr[j] = x;
-        save(); renderFn()
+        save(); adminPanel(renderFn)
       }
     }
   });
@@ -217,19 +227,19 @@ function adminBind(renderFn) {
       var parts = b.dataset.orderProj.split('.'), arr = state.projects[parts[0]], i = +parts[1], j = i + (+parts[2]);
       if (arr && j >= 0 && j < arr.length) {
         var x = arr[i]; arr[i] = arr[j]; arr[j] = x;
-        save(); renderFn()
+        save(); adminPanel(renderFn)
       }
     }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-add]')).forEach(function (b) {
-    b.onclick = function () { add(b.dataset.add); save(); renderFn() }
+    b.onclick = function () { add(b.dataset.add); save(); adminPanel(renderFn) }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-add-leader]')).forEach(function (b) {
     b.onclick = function () {
       if (!state.about.leaders) state.about.leaders = [];
       state.about.leaders.push({ name: 'New Leader', role: 'Role', image: '', bio: '' });
       save();
-      renderFn()
+      adminPanel(renderFn)
     }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-upload-image]')).forEach(function (el) {
@@ -238,9 +248,19 @@ function adminBind(renderFn) {
       if (!file) return;
       var r = new FileReader();
       r.onload = function () {
-        set(el.dataset.uploadImage, r.result);
-        save();
-        renderFn()
+        uploadMedia(file.name, r.result).then(function (url) {
+          try {
+            if (url) {
+              set(el.dataset.uploadImage, url);
+              save();
+              adminPanel(renderFn)
+            } else {
+              toast('Upload failed. Please try again.')
+            }
+          } catch (err) {
+            toast('Upload failed. Please try again.')
+          }
+        })
       };
       r.readAsDataURL(file)
     }
@@ -249,11 +269,11 @@ function adminBind(renderFn) {
     b.onclick = function () {
       set(b.dataset.clearImage, '');
       save();
-      renderFn()
+      adminPanel(renderFn)
     }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-hidden]')).forEach(function (el) {
-    el.onchange = function () { state.hidden[el.dataset.hidden] = el.value === 'true'; save(); renderFn() }
+    el.onchange = function () { state.hidden[el.dataset.hidden] = el.value === 'true'; save(); adminPanel(renderFn) }
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-order]')).forEach(function (b) {
     b.onclick = function () {
@@ -263,7 +283,7 @@ function adminBind(renderFn) {
         state.order[i] = state.order[j];
         state.order[j] = x;
         save();
-        renderFn()
+        adminPanel(renderFn)
       }
     }
   });
@@ -276,9 +296,17 @@ function adminBind(renderFn) {
         var r = new FileReader();
         r.onload = function () {
           uploadMedia(file.name, r.result).then(function (url) {
-            state.gallery.push({ id: Math.random().toString(36).slice(2, 9), name: file.name, category: cat, period: period, url: url || r.result, published: true });
-            save();
-            renderFn()
+            try {
+              if (url) {
+                state.gallery.push({ id: Math.random().toString(36).slice(2, 9), name: file.name, category: cat, period: period, url: url, published: true });
+                save();
+                adminPanel(renderFn)
+              } else {
+                toast('Upload failed. Please try again.')
+              }
+            } catch (err) {
+              toast('Upload failed. Please try again.')
+            }
           })
         };
         r.readAsDataURL(file)

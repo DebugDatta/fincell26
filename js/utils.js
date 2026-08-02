@@ -9,7 +9,9 @@ export function pathOf(p) { return p === 'home' ? '/' : '/' + p }
 
 export function pageFromPath() {
   var p = location.pathname.replace(/^\//, '') || 'home';
-  if (p === 'admin') return 'admin';
+  try { p = decodeURIComponent(p) } catch (e) {}
+  p = p.trim();
+  if (p.toLowerCase() === 'admin') return 'admin';
   return routes.some(function (r) { return r[0] === p }) ? p : 'home'
 }
 

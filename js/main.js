@@ -1,4 +1,4 @@
-import { state, app, routes, refreshImages, loadRemote, verifyLogin } from './state.js';
+import { state, app, routes, refreshImages, loadRemote, verifyLogin, restoreSession, logout } from './state.js';
 import { $, $$, esc, pathOf, pageFromPath, applyType, foot, toast, counters } from './utils.js';
 import { initMarket } from './market.js';
 import { bindDash } from './pages/dashboard.js';
@@ -137,7 +137,6 @@ function bind() {
         if (ok) {
           app.admin = true;
           sessionStorage.setItem('fcadmin', '1');
-          sessionStorage.setItem('fcpass', p);
           render()
         } else toast('Incorrect credentials')
       })
@@ -146,9 +145,7 @@ function bind() {
   var lob = $('#logoutBtn');
   if (lob) {
     lob.onclick = function () {
-      app.admin = false;
-      sessionStorage.removeItem('fcadmin');
-      sessionStorage.removeItem('fcpass');
+      logout();
       render()
     }
   }
@@ -249,7 +246,7 @@ function applyTheme(theme) {
 }
 
 function init() {
-  app.admin = sessionStorage.getItem('fcadmin') === '1';
+  app.admin = sessionStorage.getItem('fcadmin') === '1' && restoreSession();
 
   $('#themeToggle').onclick = function () {
     applyTheme(currentTheme() === 'light' ? 'dark' : 'light')
@@ -317,4 +314,5 @@ function init() {
   loadRemote(render)
 }
 
+document.addEventListener('state:toast', function (e) { toast(e.detail) });
 document.addEventListener('DOMContentLoaded', init)
