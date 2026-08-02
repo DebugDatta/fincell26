@@ -54,7 +54,7 @@ function footer() {
     ['blogs', 'gallery'].map(foot).join('') +
     '</div><div class="footer-col"><h3>Contact</h3><a>' + esc(f.address) + '</a><a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></div></div><div class="footer-bottom"><span>© 2026 FINCELL, St. Xavier\'s College. All rights reserved.</span><div class="socials">' +
     f.socials.map(function (s) { return '<a href="' + esc(s[1]) + '">' + esc(s[0]) + '</a>' }).join('') +
-    '</div></div></div>'
+    '</div></div><div class="footer-credit"><span>Developed by Pramit Datta &amp; Vanshika Soni ( Quantitative Research Team )</span></div></div>'
 }
 
 function page(p) {

@@ -1730,6 +1730,22 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
   color: var(--teal);
   background: rgba(78,205,196,.06);
 }
+.footer-credit {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+.footer-credit span {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 16px;
+  color: var(--dim);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: .06em;
+}
 
 /* ─────────────────────────────────────────────────────────
    ADMIN
