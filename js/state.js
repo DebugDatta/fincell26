@@ -128,10 +128,10 @@ export function defaultState() {
         ['2026 - The Present', 'Scaling research operations and building tools for the next generation of student analysts at Xavier\'s.']
       ],
       leaders: [
-        { name: 'Pritesh Arte', role: 'Faculty In Charge', image: '', bio: 'Providing academic mentorship and guiding the cell\'s research direction with over a decade of experience in finance education.' },
-        { name: 'Dhun Chaudhary', role: 'President', image: '', bio: 'Leading the cell\'s strategic vision, overseeing all verticals and driving FINCELL\'s growth across the college.' },
-        { name: 'Arko Dalal', role: 'Vice President', image: '', bio: 'Supporting daily operations, coordinating cross-departmental projects, and ensuring research quality standards.' },
-        { name: 'Aarjav Jain', role: 'Fund Manager', image: '', bio: 'Managing the student-managed investment fund, portfolio allocation, and quantitative strategy development.' }
+        { name: 'Pritesh Arte', role: 'Faculty In Charge', group: 'faculty', year: '', image: '', bio: 'Providing academic mentorship and guiding the cell\'s research direction with over a decade of experience in finance education.' },
+        { name: 'Dhun Chaudhary', role: 'President', group: 'core', year: '', image: '', bio: 'Leading the cell\'s strategic vision, overseeing all verticals and driving FINCELL\'s growth across the college.' },
+        { name: 'Arko Dalal', role: 'Vice President', group: 'core', year: '', image: '', bio: 'Supporting daily operations, coordinating cross-departmental projects, and ensuring research quality standards.' },
+        { name: 'Aarjav Jain', role: 'Fund Manager', group: 'core', year: '', image: '', bio: 'Managing the student-managed investment fund, portfolio allocation, and quantitative strategy development.' }
       ]
     },
     organization: [

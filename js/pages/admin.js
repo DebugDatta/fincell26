@@ -237,7 +237,7 @@ function adminBind(renderFn) {
   Array.prototype.slice.call(document.querySelectorAll('[data-add-leader]')).forEach(function (b) {
     b.onclick = function () {
       if (!state.about.leaders) state.about.leaders = [];
-      state.about.leaders.push({ name: 'New Leader', role: 'Role', image: '', bio: '' });
+      state.about.leaders.push({ name: 'New Leader', role: 'Role', group: b.dataset.addLeader || 'core', year: '', image: '', bio: '' });
       save();
       adminPanel(renderFn)
     }
@@ -337,13 +337,20 @@ function aboutEdit() {
     }).join('') + '</div><button class="btn secondary" data-add="about-timeline" style="margin-top:8px">+ Add Timeline Item</button></div>' +
     '<div class="admin-section"><h4>Leadership</h4><div class="admin-list">' +
     (a.leaders || []).map(function (l, i) {
+      var grp = l.group || (i === 0 ? 'faculty' : 'core');
       return '<div class="admin-item-card"><div class="editor-grid">' +
         input('Name', 'about.leaders.' + i + '.name', l.name) +
         input('Role', 'about.leaders.' + i + '.role', l.role) +
+        '<label class="field"><span>Section</span><select data-path="about.leaders.' + i + '.group">' +
+        '<option value="faculty"' + (grp === 'faculty' ? ' selected' : '') + '>Faculty In Charge</option>' +
+        '<option value="core"' + (grp === 'core' ? ' selected' : '') + '>Core</option>' +
+        '<option value="past"' + (grp === 'past' ? ' selected' : '') + '>Past Members</option>' +
+        '</select></label>' +
+        input('Year (optional)', 'about.leaders.' + i + '.year', l.year) +
         imageUpload('Image', 'about.leaders.' + i + '.image', l.image) +
         area('Bio', 'about.leaders.' + i + '.bio', l.bio) +
         '</div><button class="btn subtle danger" data-del="about.leaders.' + i + '">Delete Leader</button></div>'
-    }).join('') + '</div><button class="btn secondary" data-add-leader style="margin-top:8px">+ Add Leader</button></div>'
+    }).join('') + '</div><button class="btn secondary" data-add-leader="core" style="margin-top:8px">+ Add Leader</button> <button class="btn secondary" data-add-leader="past" style="margin-top:8px">+ Add Past Member</button></div>'
 }
 
 function editor(x) {

@@ -1580,6 +1580,8 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
 .faculty-card .leadership-img,
 .faculty-card .leadership-avatar { width: 100px; height: 100px; margin-bottom: 16px; }
 .faculty-card h3 { font-size: 18px; }
+.past-year-head { font-family: var(--mono-font); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 32px 0 14px; }
+.past-year-head:first-child { margin-top: 0; }
 
 /* ─────────────────────────────────────────────────────────
    CONTACT
