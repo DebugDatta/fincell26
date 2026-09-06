@@ -1,4 +1,4 @@
-import { shell, $, esc, toast } from '../utils.js';
+import { shell, $, toast } from '../utils.js';
 import { app } from '../state.js';
 
 var RANGES = ['1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'max'];
@@ -16,9 +16,8 @@ export default function dashboard() {
   var tick = app.ticker || '^NSEI';
   return shell('FINCELL Research Dashboard', '',
     '<div class="dash-form">' +
-    '<div class="dash-input-group dash-search-wrap"><label>Ticker (search by name or symbol)</label>' +
-    '<input id="tickerInput" value="' + tick + '" placeholder="e.g. Reliance, Apple, ^NSEI" autocomplete="off">' +
-    '<div class="dash-search-dd" id="searchDropdown"></div></div>' +
+    '<div class="dash-input-group"><label>Ticker</label>' +
+    '<input id="tickerInput" value="' + tick + '" placeholder="e.g. ^NSEI, RELIANCE.NS, AAPL"></div>' +
     '<div class="dash-input-group"><label>Data range</label>' +
     '<select id="rangeSelect">' + RANGES.map(function (r) { return '<option value="' + r + '"' + (r === '1y' ? ' selected' : '') + '>' + (RANGE_LABELS[r] || r) + '</option>' }).join('') + '</select></div>' +
     '<div class="dash-input-group"><label>Benchmark (optional)</label>' +
@@ -82,61 +81,6 @@ export function bindDash() {
     infoBtn.onclick = function () { infoOverlay.classList.add('open') };
     infoClose.onclick = function () { infoOverlay.classList.remove('open') };
     infoOverlay.onclick = function (e) { if (e.target === infoOverlay) infoOverlay.classList.remove('open') }
-  }
-
-  // ── Search dropdown ──────────────────────────────
-  var searchInput = $('#tickerInput');
-  var searchDD = $('#searchDropdown');
-  var searchTimer = null;
-  var activeIdx = -1;
-
-  function closeSearchDD() { searchDD.innerHTML = ''; searchDD.style.display = 'none'; activeIdx = -1; }
-
-  function renderResults(quotes) {
-    if (!quotes.length) { closeSearchDD(); return; }
-    activeIdx = -1;
-    searchDD.innerHTML = quotes.map(function (q, i) {
-      var name = q.longname || q.shortname || q.symbol;
-      var label = q.shortname && q.shortname !== q.longname ? name + ' (' + q.shortname + ')' : name;
-      return '<div class="dash-search-item" data-idx="' + i + '" data-sym="' + esc(q.symbol) + '">' +
-        '<span class="dash-search-sym">' + esc(q.symbol) + '</span>' +
-        '<span class="dash-search-name">' + esc(label) + '</span>' +
-        '<span class="dash-search-ex">' + esc(q.exchange) + '</span></div>';
-    }).join('');
-    searchDD.style.display = 'block';
-    searchDD.querySelectorAll('.dash-search-item').forEach(function (el) {
-      el.onmousedown = function (e) {
-        e.preventDefault();
-        searchInput.value = el.dataset.sym;
-        closeSearchDD();
-        loadBoth();
-      };
-    });
-  }
-
-  function doSearch(q) {
-    if (!q || q.length < 2) { closeSearchDD(); return; }
-    fetch('/api/search?q=' + encodeURIComponent(q))
-      .then(function (r) { return r.json() })
-      .then(function (data) { renderResults(data.quotes || []) })
-      .catch(function () { closeSearchDD() });
-  }
-
-  if (searchInput) {
-    searchInput.addEventListener('input', function () {
-      clearTimeout(searchTimer);
-      var val = searchInput.value.trim();
-      searchTimer = setTimeout(function () { doSearch(val) }, 300);
-    });
-    searchInput.addEventListener('keydown', function (e) {
-      var items = searchDD.querySelectorAll('.dash-search-item');
-      if (!items.length) return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); items.forEach(function (el, i) { el.classList.toggle('active', i === activeIdx) }); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); items.forEach(function (el, i) { el.classList.toggle('active', i === activeIdx) }); }
-      else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); searchInput.value = items[activeIdx].dataset.sym; closeSearchDD(); loadBoth(); }
-      else if (e.key === 'Escape') { closeSearchDD(); }
-    });
-    searchInput.addEventListener('blur', function () { setTimeout(closeSearchDD, 150); });
   }
 }
 
