@@ -44,6 +44,32 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    /* ── Search proxy ──────────────────────────────────── */
+    if (pathname === '/api/search') {
+      const q = url.searchParams.get('q') || '';
+      if (!q.trim()) {
+        res.writeHead(400, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+        res.end(JSON.stringify({ error: 'q parameter is required' }));
+        return;
+      }
+      try {
+        const params = new URLSearchParams({ q: q.trim(), quotes_count: '10', news_count: '0', lists_count: '0', include_cb: 'false' });
+        const r = await fetch('https://query2.finance.yahoo.com/v1/finance/search?' + params.toString(),
+          { headers: { 'user-agent': 'Mozilla/5.0' } });
+        if (!r.ok) throw new Error('Yahoo search ' + r.status);
+        const data = await r.json();
+        const quotes = (data.quotes || []).map(function (q) {
+          return { symbol: q.symbol, shortname: q.shortname || q.longname || '', longname: q.longname || q.shortname || '', exchange: q.exchange || '', quoteType: q.quoteType || '' };
+        });
+        res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+        res.end(JSON.stringify({ quotes: quotes }));
+      } catch (e) {
+        res.writeHead(502, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+
     /* ── Fundamentals data proxy ──────────────────────── */
     if (pathname === '/api/fundamentals') {
       const symbol = url.searchParams.get('symbol') || '';
