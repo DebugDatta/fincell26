@@ -1186,6 +1186,43 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
 .dash-input-group select:hover { border-color: var(--line-md); }
 .dash-input-group input:focus,
 .dash-input-group select:focus { border-color: var(--teal-d); box-shadow: 0 0 0 3px rgba(78,205,196,.08); }
+
+/* ── Search dropdown ────────────────────────────────────── */
+.dash-search-wrap { position: relative; }
+.dash-search-dd {
+  display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: var(--panel); border: 1px solid var(--line-md); border-top: none;
+  border-radius: 0 0 6px 6px; max-height: 320px; overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.dash-search-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; cursor: pointer; transition: background .12s;
+  border-bottom: 1px solid var(--line);
+}
+.dash-search-item:last-child { border-bottom: none; }
+.dash-search-item:hover,
+.dash-search-item.active { background: rgba(78,205,196,.08); }
+.dash-search-sym {
+  font-family: var(--mono-font); font-weight: 600; font-size: 12px;
+  color: var(--teal); min-width: 80px; flex-shrink: 0;
+}
+.dash-search-name {
+  font-size: 12px; color: var(--text); flex: 1; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.dash-search-ex {
+  font-family: var(--mono-font); font-size: 9px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0;
+}
+:root[data-theme="light"] .dash-search-dd { background: #fff; border-color: var(--line-md); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+:root[data-theme="light"] .dash-search-item { border-bottom-color: var(--line); }
+:root[data-theme="light"] .dash-search-item:hover,
+:root[data-theme="light"] .dash-search-item.active { background: rgba(78,205,196,.06); }
+:root[data-theme="light"] .dash-search-sym { color: var(--teal-d); }
+:root[data-theme="light"] .dash-search-name { color: var(--text); }
+:root[data-theme="light"] .dash-search-ex { color: var(--dim); }
+
 .dash-chart-header {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
 }
@@ -2089,6 +2126,9 @@ h3 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
   .dash-input-group input,
   .dash-input-group select { min-width: 0; width: 100%; }
   .dash-input-group label { font-size: 9px; }
+  .dash-search-item { padding: 10px 12px; }
+  .dash-search-sym { min-width: 70px; font-size: 11px; }
+  .dash-search-name { font-size: 11px; }
   .dash-chart-header { flex-direction: column; gap: 6px; align-items: flex-start; }
   .dash-legend { font-size: 9px; }
   .dash-panel { padding: 16px; }
