@@ -1,4 +1,4 @@
-import { state, app, routes, refreshImages, loadRemote, verifyLogin, restoreSession, logout } from './state.js';
+import { state, app, routes, refreshImages, loadRemote, restoreSession, logout } from './state.js';
 import { $, $$, esc, pathOf, pageFromPath, applyType, foot, toast, counters } from './utils.js';
 import { initMarket } from './market.js';
 import { bindDash } from './pages/dashboard.js';
@@ -133,13 +133,11 @@ function bind() {
   if (lb) {
     lb.onclick = function () {
       var u = $('#loginUser').value, p = $('#loginPass').value;
-      verifyLogin(u, p).then(function (ok) {
-        if (ok) {
-          app.admin = true;
-          sessionStorage.setItem('fcadmin', '1');
-          render()
-        } else toast('Incorrect credentials')
-      })
+      if (u === 'admin' && p === 'fincellgoats') {
+        app.admin = true;
+        sessionStorage.setItem('fcadmin', '1');
+        render()
+      } else toast('Incorrect credentials')
     }
   }
   var lob = $('#logoutBtn');
