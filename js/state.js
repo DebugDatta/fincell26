@@ -121,11 +121,14 @@ export function defaultState() {
         ['Impact', 'Insights that shape thinking beyond the classroom']
       ],
       timeline: [
-        ['2022 - Founded', "FINCELL established at St. Xavier's College with a founding cohort of 12 members across two departments."],
-        ['2023 - First Research Publication', 'Published first equity research report on the Indian FMCG sector. Launched weekly newsletter with 200+ subscribers.'],
-        ['2024 - Quantitative Division', "Launched the Quants vertical, introducing algorithmic strategies and factor modelling to the cell's research output."],
-        ['2025 - Dashboard Initiative', "Began development of an open-source quantitative research dashboard - the cell's most ambitious technical project."],
-        ['2026 - The Present', 'Scaling research operations and building tools for the next generation of student analysts at Xavier\'s.']
+        ['2022 - The Beginning', "FINCELL is founded at St. Xavier's College, Mumbai, with a vision to build a student-driven community around finance and investment."],
+        ['2023 - Building the Research Culture', 'We establish our research foundation, producing equity research, financial analysis and large-scale research initiatives.'],
+        ['2023–24 — Expanding Beyond Research', 'FinCell introduces industry interactions, workshops and speaker sessions, bringing practical finance closer to students.'],
+        ['2024 — Building the Ecosystem', 'The organisation expands into dedicated Research and Content Houses, strengthening our work across research, media, outreach and finance education.'],
+        ['2024–25 — Giving Finance a Voice', 'Our podcast and interview initiatives bring conversations with professionals and financial practitioners to the student community.'],
+        ['2025 — Research at Scale', 'We expand our publication pipeline across equity research, macroeconomics, sectors, IPOs and financial markets. Significant increase in our Quantitative analysis capabilities.'],
+        ['2025–26 — From Research to Investing', 'FinCell strengthens its quantitative research and fund-management capabilities, building a more sophisticated investment-focused ecosystem.'],
+        ['2026 — Going Pan-India', 'We launch TradeVerse, our flagship pan-India trading competition, opening FinCell's platform to students across the country.']
       ],
       leaders: [
         { name: 'Pritesh Arte', role: 'Faculty In Charge', group: 'faculty', year: '', image: '', bio: 'Providing academic mentorship and guiding the cell\'s research direction with over a decade of experience in finance education.' },
