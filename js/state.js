@@ -275,7 +275,6 @@ var syncTimer = null, syncing = false, queued = false, dirty = false;
 
 function flushSync() {
   if (syncing) { queued = true; return }
-  if (!token()) return;
   syncing = true;
   fetch(REST + '/state?on_conflict=id', {
     method: 'POST',
