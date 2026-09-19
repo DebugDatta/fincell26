@@ -281,10 +281,14 @@ function flushSync() {
     headers: Object.assign(authHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
     body: JSON.stringify({ id: 1, data: state })
   })
-    .then(function (r) { return r.json() })
+    .then(function (r) {
+      if (!r.ok) { notify('Save failed. Changes kept locally.'); return null }
+      return r.json()
+    })
     .then(function (d) {
-      if (d && d.error) { notify('Save failed. Changes kept locally.'); return }
-      if (d && d[0] && d[0].data) applyServerState(d[0].data);
+      if (!d) return;
+      if (d.message || (d.code && d.code !== 'PGRST116')) { notify('Save failed. Changes kept locally.'); return }
+      if (Array.isArray(d) && d[0] && d[0].data) applyServerState(d[0].data);
       dirty = false;
       try { localStorage.removeItem(key + '.unsynced') } catch (e) {}
     })
@@ -369,7 +373,7 @@ export function deleteMedia(url) {
 }
 
 function beaconFlush() {
-  if (!token() || !app.admin || !dirty) return;
+  if (!app.admin || !dirty) return;
   dirty = false;
   try {
     fetch(REST + '/state?on_conflict=id', {
